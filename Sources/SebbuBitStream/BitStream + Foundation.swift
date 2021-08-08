@@ -24,10 +24,9 @@ public extension WritableBitStream {
         return Data(packBytes())
     }
     
-    /// Data encoding
     @inlinable
-    static func << (bitStream: inout WritableBitStream, value: Data) {
-        bitStream.append(value)
+    mutating func append(_ value: CGFloat) {
+        append(Double(value))
     }
 }
 
@@ -45,6 +44,11 @@ public extension ReadableBitStream {
     @inline(__always)
     mutating func read() throws -> UUID {
         return try UUID(from: &self)
+    }
+    
+    @inlinable
+    mutating func read() throws -> CGFloat {
+        return CGFloat(try read() as Double)
     }
 }
 
@@ -81,4 +85,45 @@ extension UUID: BitStreamCodable {
         bitStream.append(uuid.15)
     }
 }
+
+public extension DoubleCompressor {
+    @inlinable
+    func write(_ value: CGFloat, to bitStream: inout WritableBitStream) {
+        write(Double(value), to: &bitStream)
+    }
+    
+    @inlinable
+    func read(from bitStream: inout ReadableBitStream) throws -> CGFloat {
+        try CGFloat(read(from: &bitStream) as Double)
+    }
+}
+
+#if canImport(CoreGraphics)
+import CoreGraphics
+
+public extension DoubleCompressor {
+    @inlinable
+    func write(_ value: CGPoint, to bitStream: inout WritableBitStream) {
+        write(value.x, to: &bitStream)
+        write(value.y, to: &bitStream)
+    }
+    
+    @inlinable
+    func write(_ value: CGVector, to bitStream: inout WritableBitStream) {
+        write(value.dx, to: &bitStream)
+        write(value.dy, to: &bitStream)
+    }
+    
+    @inlinable
+    func read(from bitStream: inout ReadableBitStream) throws -> CGPoint {
+        try CGPoint(x: read(from: &bitStream) as CGFloat, y: read(from: &bitStream) as CGFloat)
+    }
+    
+    @inlinable
+    func read(from bitStream: inout ReadableBitStream) throws -> CGVector {
+        try CGVector(dx: read(from: &bitStream) as CGFloat, dy: read(from: &bitStream) as CGFloat)
+    }
+}
+#endif
+
 #endif

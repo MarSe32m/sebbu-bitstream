@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "GLMSwift",
+        "repositoryURL": "https://github.com/MarSe32m/GLMSwift.git",
+        "state": {
+          "branch": "main",
+          "revision": "7b9761cb189d8fc5d207773fe1a6503257f1b7f3",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}

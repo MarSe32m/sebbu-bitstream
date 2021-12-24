@@ -147,7 +147,7 @@ public struct WritableBitStream {
 //MARK: ReadableBitStream
 public struct ReadableBitStream {
     @usableFromInline
-    var bytes = [UInt8]()
+    var bytes: [UInt8]
     
     @usableFromInline
     var endBitIndex: Int
@@ -159,19 +159,18 @@ public struct ReadableBitStream {
     var isAtEnd: Bool { return currentBit == endBitIndex }
     
     public init(bytes data: [UInt8]) {
-        var bytes = data
-        if bytes.count < 4 {
+        if data.count < 4 {
             fatalError("failed to init bitstream")
         }
 
-        var endBitIndex32 = UInt32(bytes[0])
-        endBitIndex32 |= (UInt32(bytes[1]) << 8)
-        endBitIndex32 |= (UInt32(bytes[2]) << 16)
-        endBitIndex32 |= (UInt32(bytes[3]) << 24)
+        var endBitIndex32 = UInt32(data[0])
+        endBitIndex32 |= (UInt32(data[1]) << 8)
+        endBitIndex32 |= (UInt32(data[2]) << 16)
+        endBitIndex32 |= (UInt32(data[3]) << 24)
         endBitIndex = Int(endBitIndex32)
 
+        self.bytes = data
         bytes.removeSubrange(0...3)
-        self.bytes = bytes
     }
     
     // MARK: - Read

@@ -1,7 +1,23 @@
 import XCTest
 import SebbuBitStream
+import Dispatch
 
 final class SebbuBitStreamTests: XCTestCase {
+    func testBenchmarking() throws {
+        measure {
+            var writeStream = WritableBitStream(size: 16)
+            writeStream.append(163 as UInt64)
+            writeStream.append(164 as UInt64)
+            let packedData = writeStream.packBytes()
+            var readStream = ReadableBitStream(bytes: packedData)
+            let value1 = try! readStream.read() as UInt64
+            let value2 = try! readStream.read() as UInt64
+            if value1 | value2 == 0 {
+                print("Hello")
+            }
+        }
+    }
+    
     func testUInt8Coding() throws {
         try test(lowerBound: UInt8.min, upperBound: .max)
     }

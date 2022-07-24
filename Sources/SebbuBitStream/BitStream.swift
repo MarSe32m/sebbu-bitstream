@@ -47,16 +47,16 @@ public struct WritableBitStream {
     
     //MARK: - Append FixedWidthInteger
     @inlinable
-    @_specialize(where T == UInt8)
-    @_specialize(where T == UInt16)
-    @_specialize(where T == UInt32)
-    @_specialize(where T == UInt64)
-    @_specialize(where T == UInt)
-    @_specialize(where T == Int8)
-    @_specialize(where T == Int16)
-    @_specialize(where T == Int32)
-    @_specialize(where T == Int64)
-    @_specialize(where T == Int)
+    @_specialize(exported: true, kind: full, where T == UInt8)
+    @_specialize(exported: true, kind: full, where T == UInt16)
+    @_specialize(exported: true, kind: full, where T == UInt32)
+    @_specialize(exported: true, kind: full, where T == UInt64)
+    @_specialize(exported: true, kind: full, where T == UInt)
+    @_specialize(exported: true, kind: full, where T == Int8)
+    @_specialize(exported: true, kind: full, where T == Int16)
+    @_specialize(exported: true, kind: full, where T == Int32)
+    @_specialize(exported: true, kind: full, where T == Int64)
+    @_specialize(exported: true, kind: full, where T == Int)
     public mutating func append<T>(_ value: T) where T: FixedWidthInteger {
         var tempValue = value
         for _ in 0..<value.bitWidth {
@@ -66,11 +66,11 @@ public struct WritableBitStream {
     }
     
     @inlinable
-    @_specialize(where T == UInt8)
-    @_specialize(where T == UInt16)
-    @_specialize(where T == UInt32)
-    @_specialize(where T == UInt64)
-    @_specialize(where T == UInt)
+    @_specialize(exported: true, kind: full, where T == UInt8)
+    @_specialize(exported: true, kind: full, where T == UInt16)
+    @_specialize(exported: true, kind: full, where T == UInt32)
+    @_specialize(exported: true, kind: full, where T == UInt64)
+    @_specialize(exported: true, kind: full, where T == UInt)
     public mutating func append<T>(_ value: T, numberOfBits: Int) where T: UnsignedInteger {
         var tempValue = value
         assert(numberOfBits <= value.bitWidth)
@@ -206,16 +206,16 @@ public struct ReadableBitStream {
     }
     
     @inlinable
-    @_specialize(where T == UInt8)
-    @_specialize(where T == UInt16)
-    @_specialize(where T == UInt32)
-    @_specialize(where T == UInt64)
-    @_specialize(where T == UInt)
-    @_specialize(where T == Int8)
-    @_specialize(where T == Int16)
-    @_specialize(where T == Int32)
-    @_specialize(where T == Int64)
-    @_specialize(where T == Int)
+    @_specialize(exported: true, kind: full, where T == UInt8)
+    @_specialize(exported: true, kind: full, where T == UInt16)
+    @_specialize(exported: true, kind: full, where T == UInt32)
+    @_specialize(exported: true, kind: full, where T == UInt64)
+    @_specialize(exported: true, kind: full, where T == UInt)
+    @_specialize(exported: true, kind: full, where T == Int8)
+    @_specialize(exported: true, kind: full, where T == Int16)
+    @_specialize(exported: true, kind: full, where T == Int32)
+    @_specialize(exported: true, kind: full, where T == Int64)
+    @_specialize(exported: true, kind: full, where T == Int)
     public mutating func read<T>() throws -> T where T: FixedWidthInteger {
         if currentBit + T.bitWidth > endBitIndex {
             throw BitStreamError.tooShort
@@ -228,11 +228,11 @@ public struct ReadableBitStream {
     }
     
     @inlinable
-    @_specialize(where T == UInt8)
-    @_specialize(where T == UInt16)
-    @_specialize(where T == UInt32)
-    @_specialize(where T == UInt64)
-    @_specialize(where T == UInt)
+    @_specialize(exported: true, kind: full, where T == UInt8)
+    @_specialize(exported: true, kind: full, where T == UInt16)
+    @_specialize(exported: true, kind: full, where T == UInt32)
+    @_specialize(exported: true, kind: full, where T == UInt64)
+    @_specialize(exported: true, kind: full, where T == UInt)
     public mutating func read<T>(numberOfBits: Int) throws -> T where T: UnsignedInteger {
         if currentBit + numberOfBits > endBitIndex {
             throw BitStreamError.tooShort

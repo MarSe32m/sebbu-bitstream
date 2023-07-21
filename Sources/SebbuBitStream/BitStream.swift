@@ -12,22 +12,6 @@ public enum BitStreamError: Error {
 }
 
 /// Gets the number of bits required to encode an enum case.
-public extension RawRepresentable where Self: CaseIterable, RawValue == UInt8 {
-    @inlinable
-    static var bits: Int {
-        let casesCount = UInt8(allCases.count)
-        return UInt32.bitWidth - casesCount.leadingZeroBitCount
-    }
-}
-
-public extension RawRepresentable where Self: CaseIterable, RawValue == UInt16 {
-    @inlinable
-    static var bits: Int {
-        let casesCount = UInt16(allCases.count)
-        return UInt32.bitWidth - casesCount.leadingZeroBitCount
-    }
-}
-
 public extension RawRepresentable where Self: CaseIterable, RawValue == UInt32 {
     @inlinable
     static var bits: Int {
@@ -36,37 +20,28 @@ public extension RawRepresentable where Self: CaseIterable, RawValue == UInt32 {
     }
 }
 
-public extension RawRepresentable where Self: CaseIterable, RawValue == UInt64 {
-    @inlinable
-    static var bits: Int {
-        let casesCount = UInt64(allCases.count)
-        return UInt32.bitWidth - casesCount.leadingZeroBitCount
-    }
-}
-
-public extension RawRepresentable where Self: CaseIterable, RawValue == UInt {
-    @inlinable
-    static var bits: Int {
-        let casesCount = UInt(allCases.count)
-        return UInt32.bitWidth - casesCount.leadingZeroBitCount
-    }
-}
-
 //MARK: WritableBitStream
 //TODO: non-copyable?
 public struct WritableBitStream {
     @usableFromInline
-    var bytes: [UInt8]
+    var bytes: [UInt8] = []
     
     @usableFromInline
     var endBitIndex = 0
 
-    public init(size: Int? = nil) {
-        bytes = []
-        if let size = size {
-            // 4: endBitIndex + size: data + 4: possible crc
-            bytes.reserveCapacity(4 + size + 4)
+    public init(size: Int = 0) {
+        precondition(size >= 0)
+        // 4: endBitIndex + size: data + 4: possible crc
+        reset(reservingCapacity: 4 + size + 4)
+    }
+
+    @inlinable
+    public mutating func reset(reservingCapacity: Int = 0) {
+        bytes.removeAll(keepingCapacity: reservingCapacity == 0)
+        if reservingCapacity != 0 {
+            bytes.reserveCapacity(4 + reservingCapacity + 4)
         }
+        endBitIndex = 0
         append(0 as UInt8)
         append(0 as UInt8)
         append(0 as UInt8)
@@ -123,36 +98,11 @@ public struct WritableBitStream {
     }
     
     // Appends an integer-based enum using the minimal number of bits for its set of possible cases.
-    //TODO: Add test
     @inlinable
-    public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt8 {
-        append(value.rawValue, numberOfBits: T.bits)
-    }
-
-    @inlinable
-    //TODO: Add test
-    public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt16 {
-        append(value.rawValue, numberOfBits: T.bits)
-    }
-
-    @inlinable
-    //TODO: Add test
     public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
         append(value.rawValue, numberOfBits: T.bits)
     }
 
-    @inlinable
-    //TODO: Add test
-    public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt64 {
-        append(value.rawValue, numberOfBits: T.bits)
-    }
-
-    @inlinable
-    //TODO: Add test
-    public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt {
-        append(value.rawValue, numberOfBits: T.bits)
-    }
-    
     @inlinable
     public mutating func append(_ value: Float) {
         append(value.bitPattern)
@@ -347,48 +297,8 @@ public struct ReadableBitStream {
     
     @inlinable
     //TODO: Add test
-    public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt8 {
-        let rawValue = try read(numberOfBits: T.bits) as UInt8
-        guard let result = T(rawValue: rawValue) else {
-            throw BitStreamError.encodingError
-        }
-        return result
-    }
-
-    @inlinable
-    //TODO: Add test
-    public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt16 {
-        let rawValue = try read(numberOfBits: T.bits) as UInt16
-        guard let result = T(rawValue: rawValue) else {
-            throw BitStreamError.encodingError
-        }
-        return result
-    }
-
-    @inlinable
-    //TODO: Add test
     public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
         let rawValue = try read(numberOfBits: T.bits) as UInt32
-        guard let result = T(rawValue: rawValue) else {
-            throw BitStreamError.encodingError
-        }
-        return result
-    }
-
-    @inlinable
-    //TODO: Add test
-    public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt64 {
-        let rawValue = try read(numberOfBits: T.bits) as UInt64
-        guard let result = T(rawValue: rawValue) else {
-            throw BitStreamError.encodingError
-        }
-        return result
-    }
-    
-    @inlinable
-    //TODO: Add test
-    public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt {
-        let rawValue = try read(numberOfBits: T.bits) as UInt
         guard let result = T(rawValue: rawValue) else {
             throw BitStreamError.encodingError
         }

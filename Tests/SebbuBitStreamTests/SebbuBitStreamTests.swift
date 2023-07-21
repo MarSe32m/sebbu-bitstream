@@ -68,7 +68,7 @@ final class SebbuBitStreamTests: XCTestCase {
         
         writeStream = WritableBitStream()
         entity.encode(to: &writeStream)
-        readStream = try ReadableBitStream(bytes: writeStream.packBytes(crcAppended: true), withCRCValidated: true)
+        readStream = try ReadableBitStream(bytes: writeStream.packBytes(withCrc: true), crcValidated: true)
         newEntity = try readStream.readObject()
         try assert(entity: entity, newEntity: newEntity)
     }

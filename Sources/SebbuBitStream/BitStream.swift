@@ -199,8 +199,7 @@ public struct WritableBitStream {
     // MARK: - Pack/Unpack Data
     @inlinable
     @_optimize(speed)
-    public mutating func packBytes(withExtraCapacity: Int = 0, crcAppended: Bool = false) -> [UInt8] {
-        assert(withExtraCapacity >= 0, "Extra capacity cannot be negative")
+    public mutating func packBytes(withCrc: Bool = false) -> [UInt8] {
         let endBitIndex32 = UInt32(endBitIndex)
         withUnsafeBytes(of: endBitIndex32) { 
             bytes[0] = $0[0]
@@ -208,7 +207,7 @@ public struct WritableBitStream {
             bytes[2] = $0[2]
             bytes[3] = $0[3]
         }
-        if crcAppended {
+        if withCrc {
             let crc = bytes.crcChecksum
             withUnsafeBytes(of: crc) {
                 bytes.append(contentsOf: $0)
@@ -246,9 +245,9 @@ public struct ReadableBitStream {
         currentBit = 32
     }
 
-    public init(bytes data: [UInt8], withCRCValidated: Bool) throws {
+    public init(bytes data: [UInt8], crcValidated: Bool) throws {
         precondition(data.count >= 8, "Failed to initialize bit stream, the provided count was \(data.count)")
-        if _fastPath(withCRCValidated) {
+        if _fastPath(crcValidated) {
             let checksum = data[0..<data.count - 4].crcChecksum
             var crc = UInt32(data[data.count - 4])
             crc |= (UInt32(data[data.count - 3]) << 8)

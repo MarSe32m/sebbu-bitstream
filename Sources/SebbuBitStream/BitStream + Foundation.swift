@@ -21,8 +21,8 @@ public extension WritableBitStream {
     
     @inlinable
     @inline(__always)
-    mutating func packData(withExtraCapacity: Int = 0, crcAppended: Bool = false) -> Data {
-        return Data(packBytes(withExtraCapacity: withExtraCapacity, crcAppended: crcAppended))
+    mutating func packData(withCrc: Bool = false) -> Data {
+        return Data(packBytes(withCrc: withCrc))
     }
     
     @inlinable

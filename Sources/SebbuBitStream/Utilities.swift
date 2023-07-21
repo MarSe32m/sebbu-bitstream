@@ -10,8 +10,8 @@ internal let crcTable: UnsafeBufferPointer<UInt32> = {
     return UnsafeBufferPointer(buffer)
 }()
 
-public extension Sequence where Element == UInt8 {
-    //@usableFromInline
+internal extension Sequence where Element == UInt8 {
+    @usableFromInline
     var crcChecksum: UInt32 {
         ~(self.reduce(~UInt32(0), { crc, byte in 
             (crc >> 8) ^ crcTable[(Int(crc) ^ Int(byte)) & 0xFF]
@@ -19,8 +19,8 @@ public extension Sequence where Element == UInt8 {
     }
 }
 
-public extension UnsafeRawBufferPointer {
-    //@usableFromInline
+internal extension UnsafeRawBufferPointer {
+    @usableFromInline
     var crcChecksum: UInt32 {
         ~(self.reduce(~UInt32(0), { crc, byte in
             (crc >> 8) ^ crcTable[(Int(crc) ^ Int(byte)) & 0xFF]

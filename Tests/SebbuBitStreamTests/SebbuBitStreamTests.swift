@@ -1,6 +1,6 @@
 import XCTest
 import SebbuBitStream
-import Dispatch
+import SebbuBitStreamFoundation
 
 final class SebbuBitStreamTests: XCTestCase {
     func testBenchmarking() throws {

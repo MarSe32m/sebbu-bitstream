@@ -6,8 +6,9 @@
 //
 //  Copyright © 2021 Sebastian Toivonen. All rights reserved.
 
-#if canImport(Foundation)
 import Foundation
+import SebbuBitStream
+
 public extension WritableBitStream {
     @inlinable
     mutating func append(_ value: Data) {
@@ -126,6 +127,4 @@ public extension DoubleCompressor {
         try CGVector(dx: read(from: &bitStream) as CGFloat, dy: read(from: &bitStream) as CGFloat)
     }
 }
-#endif
-
 #endif

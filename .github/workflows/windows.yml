@@ -20,7 +20,7 @@ jobs:
            branch: swift-5.7.3-release
          - tag: 5.8.1-RELEASE
            branch: swift-5.8.1-release
-           #TODO: Add 5.9.0-RELEASE
+           #TODO: Add 5.9-RELEASE
          - tag: DEVELOPMENT-SNAPSHOT-2023-07-10-a
            branch: development
            

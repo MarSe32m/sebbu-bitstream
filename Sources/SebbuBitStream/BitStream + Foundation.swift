@@ -20,11 +20,13 @@ public extension WritableBitStream {
     }
     
     @inlinable
-    func packData() -> Data {
-        return Data(packBytes())
+    @inline(__always)
+    mutating func packData(withExtraCapacity: Int = 0, crcAppended: Bool = false) -> Data {
+        return Data(packBytes(withExtraCapacity: withExtraCapacity, crcAppended: crcAppended))
     }
     
     @inlinable
+    @inline(__always)
     mutating func append(_ value: CGFloat) {
         append(Double(value))
     }

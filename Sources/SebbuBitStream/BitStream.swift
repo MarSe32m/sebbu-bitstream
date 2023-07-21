@@ -8,9 +8,26 @@
 public enum BitStreamError: Error {
     case tooShort
     case encodingError
+    case incorrectChecksum
 }
 
 /// Gets the number of bits required to encode an enum case.
+public extension RawRepresentable where Self: CaseIterable, RawValue == UInt8 {
+    @inlinable
+    static var bits: Int {
+        let casesCount = UInt8(allCases.count)
+        return UInt32.bitWidth - casesCount.leadingZeroBitCount
+    }
+}
+
+public extension RawRepresentable where Self: CaseIterable, RawValue == UInt16 {
+    @inlinable
+    static var bits: Int {
+        let casesCount = UInt16(allCases.count)
+        return UInt32.bitWidth - casesCount.leadingZeroBitCount
+    }
+}
+
 public extension RawRepresentable where Self: CaseIterable, RawValue == UInt32 {
     @inlinable
     static var bits: Int {
@@ -19,16 +36,41 @@ public extension RawRepresentable where Self: CaseIterable, RawValue == UInt32 {
     }
 }
 
+public extension RawRepresentable where Self: CaseIterable, RawValue == UInt64 {
+    @inlinable
+    static var bits: Int {
+        let casesCount = UInt64(allCases.count)
+        return UInt32.bitWidth - casesCount.leadingZeroBitCount
+    }
+}
+
+public extension RawRepresentable where Self: CaseIterable, RawValue == UInt {
+    @inlinable
+    static var bits: Int {
+        let casesCount = UInt(allCases.count)
+        return UInt32.bitWidth - casesCount.leadingZeroBitCount
+    }
+}
+
 //MARK: WritableBitStream
+//TODO: non-copyable?
 public struct WritableBitStream {
     @usableFromInline
-    var bytes = [UInt8]()
+    var bytes: [UInt8]
     
     @usableFromInline
     var endBitIndex = 0
 
     public init(size: Int? = nil) {
-        if let size = size { bytes.reserveCapacity(size + 4) }
+        bytes = []
+        if let size = size {
+            // 4: endBitIndex + size: data + 4: possible crc
+            bytes.reserveCapacity(4 + size + 4)
+        }
+        append(0 as UInt8)
+        append(0 as UInt8)
+        append(0 as UInt8)
+        append(0 as UInt8)
     }
 
     public var description: String {
@@ -81,9 +123,34 @@ public struct WritableBitStream {
     }
     
     // Appends an integer-based enum using the minimal number of bits for its set of possible cases.
+    //TODO: Add test
     @inlinable
+    public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt8 {
+        append(value.rawValue, numberOfBits: T.bits)
+    }
+
+    @inlinable
+    //TODO: Add test
+    public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt16 {
+        append(value.rawValue, numberOfBits: T.bits)
+    }
+
+    @inlinable
+    //TODO: Add test
     public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
-        append(value.rawValue, numberOfBits: type(of: value).bits)
+        append(value.rawValue, numberOfBits: T.bits)
+    }
+
+    @inlinable
+    //TODO: Add test
+    public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt64 {
+        append(value.rawValue, numberOfBits: T.bits)
+    }
+
+    @inlinable
+    //TODO: Add test
+    public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt {
+        append(value.rawValue, numberOfBits: T.bits)
     }
     
     @inlinable
@@ -123,6 +190,7 @@ public struct WritableBitStream {
     }
     
     @inlinable
+    @inline(__always)
     mutating internal func align() {
         // skip over any remaining bits in the current byte
         endBitIndex = bytes.count * 8
@@ -130,24 +198,31 @@ public struct WritableBitStream {
 
     // MARK: - Pack/Unpack Data
     @inlinable
-    public func packBytes(withExtraCapacity: Int = 0) -> [UInt8] {
+    @_optimize(speed)
+    public mutating func packBytes(withExtraCapacity: Int = 0, crcAppended: Bool = false) -> [UInt8] {
+        assert(withExtraCapacity >= 0, "Extra capacity cannot be negative")
         let endBitIndex32 = UInt32(endBitIndex)
-        let endBitIndexBytes = [UInt8(truncatingIfNeeded: endBitIndex32),
-                                UInt8(truncatingIfNeeded: endBitIndex32 >> 8),
-                                UInt8(truncatingIfNeeded: endBitIndex32 >> 16),
-                                UInt8(truncatingIfNeeded: endBitIndex32 >> 24)]
-        var result: [UInt8] = []
-        result.reserveCapacity(bytes.count + 4 + withExtraCapacity)
-        result.append(contentsOf: endBitIndexBytes)
-        result.append(contentsOf: bytes)
-        return result
+        withUnsafeBytes(of: endBitIndex32) { 
+            bytes[0] = $0[0]
+            bytes[1] = $0[1]
+            bytes[2] = $0[2]
+            bytes[3] = $0[3]
+        }
+        if crcAppended {
+            let crc = bytes.crcChecksum
+            withUnsafeBytes(of: crc) {
+                bytes.append(contentsOf: $0)
+            }
+        }
+        return bytes
     }
 }
 
 //MARK: ReadableBitStream
+//TODO: non-copyable?
 public struct ReadableBitStream {
     @usableFromInline
-    var bytes: [UInt8]
+    let bytes: [UInt8]
     
     @usableFromInline
     var endBitIndex: Int
@@ -159,18 +234,29 @@ public struct ReadableBitStream {
     var isAtEnd: Bool { return currentBit == endBitIndex }
     
     public init(bytes data: [UInt8]) {
-        if data.count < 4 {
-            fatalError("failed to init bitstream")
-        }
-
+        precondition(data.count >= 4, "Failed to initialize bit stream, the provided count was \(data.count)")
+        // Since arrays are copy-on-write, this will not copy 
+        // unless the passed in array is modified by the outside caller
+        self.bytes = data
         var endBitIndex32 = UInt32(data[0])
         endBitIndex32 |= (UInt32(data[1]) << 8)
         endBitIndex32 |= (UInt32(data[2]) << 16)
         endBitIndex32 |= (UInt32(data[3]) << 24)
         endBitIndex = Int(endBitIndex32)
+        currentBit = 32
+    }
 
-        self.bytes = data
-        bytes.removeSubrange(0...3)
+    public init(bytes data: [UInt8], withCRCValidated: Bool) throws {
+        precondition(data.count >= 8, "Failed to initialize bit stream, the provided count was \(data.count)")
+        if _fastPath(withCRCValidated) {
+            let checksum = data[0..<data.count - 4].crcChecksum
+            var crc = UInt32(data[data.count - 4])
+            crc |= (UInt32(data[data.count - 3]) << 8)
+            crc |= (UInt32(data[data.count - 2]) << 16)
+            crc |= (UInt32(data[data.count - 1]) << 24)
+            if checksum != crc { throw BitStreamError.incorrectChecksum }
+        }
+        self = ReadableBitStream(bytes: data)
     }
     
     // MARK: - Read
@@ -261,6 +347,27 @@ public struct ReadableBitStream {
     }
     
     @inlinable
+    //TODO: Add test
+    public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt8 {
+        let rawValue = try read(numberOfBits: T.bits) as UInt8
+        guard let result = T(rawValue: rawValue) else {
+            throw BitStreamError.encodingError
+        }
+        return result
+    }
+
+    @inlinable
+    //TODO: Add test
+    public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt16 {
+        let rawValue = try read(numberOfBits: T.bits) as UInt16
+        guard let result = T(rawValue: rawValue) else {
+            throw BitStreamError.encodingError
+        }
+        return result
+    }
+
+    @inlinable
+    //TODO: Add test
     public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
         let rawValue = try read(numberOfBits: T.bits) as UInt32
         guard let result = T(rawValue: rawValue) else {
@@ -268,7 +375,27 @@ public struct ReadableBitStream {
         }
         return result
     }
+
+    @inlinable
+    //TODO: Add test
+    public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt64 {
+        let rawValue = try read(numberOfBits: T.bits) as UInt64
+        guard let result = T(rawValue: rawValue) else {
+            throw BitStreamError.encodingError
+        }
+        return result
+    }
     
+    @inlinable
+    //TODO: Add test
+    public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt {
+        let rawValue = try read(numberOfBits: T.bits) as UInt
+        guard let result = T(rawValue: rawValue) else {
+            throw BitStreamError.encodingError
+        }
+        return result
+    }
+
     @inlinable
     public mutating func read() throws -> String {
         let bytes: [UInt8] = try read()
@@ -294,56 +421,56 @@ public struct ReadableBitStream {
 
 public extension FloatCompressor {
     @inlinable
-    func write(_ value: SIMD2<Float>, to string: inout WritableBitStream) {
-        write(value.x, to: &string)
-        write(value.y, to: &string)
+    func write(_ value: SIMD2<Float>, to stream: inout WritableBitStream) {
+        write(value.x, to: &stream)
+        write(value.y, to: &stream)
     }
     
     @inlinable
-    func write(_ value: SIMD3<Float>, to string: inout WritableBitStream) {
-        write(value.x, to: &string)
-        write(value.y, to: &string)
-        write(value.z, to: &string)
+    func write(_ value: SIMD3<Float>, to stream: inout WritableBitStream) {
+        write(value.x, to: &stream)
+        write(value.y, to: &stream)
+        write(value.z, to: &stream)
     }
     
     @inlinable
-    func read(from string: inout ReadableBitStream) throws -> SIMD2<Float> {
-        return SIMD2<Float>(x: try read(from: &string), y: try read(from: &string))
+    func read(from stream: inout ReadableBitStream) throws -> SIMD2<Float> {
+        return SIMD2<Float>(x: try read(from: &stream), y: try read(from: &stream))
     }
     
     @inlinable
-    func read(from string: inout ReadableBitStream) throws -> SIMD3<Float> {
+    func read(from stream: inout ReadableBitStream) throws -> SIMD3<Float> {
         return SIMD3<Float>(
-            x: try read(from: &string),
-            y: try read(from: &string),
-            z: try read(from: &string))
+            x: try read(from: &stream),
+            y: try read(from: &stream),
+            z: try read(from: &stream))
     }
 }
 
 public extension DoubleCompressor {
     @inlinable
-    func write(_ value: SIMD2<Double>, to string: inout WritableBitStream) {
-        write(value.x, to: &string)
-        write(value.y, to: &string)
+    func write(_ value: SIMD2<Double>, to stream: inout WritableBitStream) {
+        write(value.x, to: &stream)
+        write(value.y, to: &stream)
     }
     
     @inlinable
-    func write(_ value: SIMD3<Double>, to string: inout WritableBitStream) {
-        write(value.x, to: &string)
-        write(value.y, to: &string)
-        write(value.z, to: &string)
+    func write(_ value: SIMD3<Double>, to stream: inout WritableBitStream) {
+        write(value.x, to: &stream)
+        write(value.y, to: &stream)
+        write(value.z, to: &stream)
     }
     
     @inlinable
-    func read(from string: inout ReadableBitStream) throws -> SIMD2<Double> {
-        return SIMD2<Double>(x: try read(from: &string), y: try read(from: &string))
+    func read(from stream: inout ReadableBitStream) throws -> SIMD2<Double> {
+        return SIMD2<Double>(x: try read(from: &stream), y: try read(from: &stream))
     }
     
     @inlinable
-    func read(from string: inout ReadableBitStream) throws -> SIMD3<Double> {
+    func read(from stream: inout ReadableBitStream) throws -> SIMD3<Double> {
         return SIMD3<Double>(
-            x: try read(from: &string),
-            y: try read(from: &string),
-            z: try read(from: &string))
+            x: try read(from: &stream),
+            y: try read(from: &stream),
+            z: try read(from: &stream))
     }
 }

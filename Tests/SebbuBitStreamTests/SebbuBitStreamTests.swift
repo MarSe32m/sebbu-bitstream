@@ -57,47 +57,20 @@ final class SebbuBitStreamTests: XCTestCase {
     func testIntCoding() throws {
         try self.test(lowerBound: Int.random(in: -1_000_000 ... -5_000), upperBound: Int.random(in: 5000 ... 1_000_000))
     }
-    
+
     func testComplexType() throws {
         let entity = Entity(uint8: 154, uint16: 8832, uint32: 718348123, uint64: 918239485, uint: 123895851, int8: -75, int16: -3423, int32: -234555, int64: -2345261462, int: -234692384, name: "My name is Oliver Quèen!", bool: true, ´enum´: .player, float: 1.02345, double: -1.2143525, bytes: [1,2,3,5,6,7,4,2,4,67,3,2,4,5,7,2,129], identifier: .init(), count: 88, uint8bits: 5, uint16bits: 17, uint32bits: 663, uint64bits: 235234, uintbits: 3233, uintBits999: 887, floatBits: -10, doubleBits: 99, bitArray: [1,2,3,5,6,7,4,6], boundedArray: [Packet(sequence: 1), Packet(sequence: 1), Packet(sequence: 1), Packet(sequence: 1)])
         var writeStream = WritableBitStream()
         entity.encode(to: &writeStream)
         var readStream = ReadableBitStream(bytes: writeStream.packBytes())
-        let newEntity: Entity = try readStream.readObject()
-        XCTAssertEqual(entity.uint8, newEntity.uint8)
-        XCTAssertEqual(entity.uint16, newEntity.uint16)
-        XCTAssertEqual(entity.uint32, newEntity.uint32)
-        XCTAssertEqual(entity.uint64, newEntity.uint64)
-        XCTAssertEqual(entity.uint, newEntity.uint)
+        var newEntity: Entity = try readStream.readObject()
+        try assert(entity: entity, newEntity: newEntity)
         
-        XCTAssertEqual(entity.int8, newEntity.int8)
-        XCTAssertEqual(entity.int16, newEntity.int16)
-        XCTAssertEqual(entity.int32, newEntity.int32)
-        XCTAssertEqual(entity.int64, newEntity.int64)
-        XCTAssertEqual(entity.int, newEntity.int)
-        
-        XCTAssertEqual(entity.name, newEntity.name)
-        XCTAssertEqual(entity.bool, newEntity.bool)
-        XCTAssertEqual(entity.´enum´, newEntity.´enum´)
-        XCTAssertEqual(entity.float, newEntity.float)
-        XCTAssertEqual(entity.double, newEntity.double)
-        XCTAssertEqual(entity.bytes, newEntity.bytes)
-        
-        XCTAssertEqual(entity.identifier, newEntity.identifier)
-        
-        XCTAssertEqual(entity.uint8Bits, newEntity.uint8Bits)
-        XCTAssertEqual(entity.uint16Bits, newEntity.uint16Bits)
-        XCTAssertEqual(entity.uint32Bits, newEntity.uint32Bits)
-        XCTAssertEqual(entity.uint64Bits, newEntity.uint64Bits)
-        XCTAssertEqual(entity.uintBits, newEntity.uintBits)
-        XCTAssertEqual(entity.uintBits999, newEntity.uintBits999)
-        
-        
-        XCTAssert(abs(entity.floatBits - newEntity.floatBits) < 0.01)
-        XCTAssert(abs(entity.doubleBits - newEntity.doubleBits) < 0.01)
-        XCTAssertEqual(entity.bitArray, newEntity.bitArray)
-        XCTAssertEqual(entity.boundedArray, newEntity.boundedArray)
-        
+        writeStream = WritableBitStream()
+        entity.encode(to: &writeStream)
+        readStream = try ReadableBitStream(bytes: writeStream.packBytes(crcAppended: true), withCRCValidated: true)
+        newEntity = try readStream.readObject()
+        try assert(entity: entity, newEntity: newEntity)
     }
     
     private func test<T>(lowerBound: T, upperBound: T) throws where T: FixedWidthInteger {
@@ -284,5 +257,41 @@ final class SebbuBitStreamTests: XCTestCase {
             bitStream.append(_bitArray)
             bitStream.append(_boundedArray)
         }
+    }
+
+    private func assert(entity: Entity, newEntity: Entity) throws {
+        XCTAssertEqual(entity.uint8, newEntity.uint8)
+        XCTAssertEqual(entity.uint16, newEntity.uint16)
+        XCTAssertEqual(entity.uint32, newEntity.uint32)
+        XCTAssertEqual(entity.uint64, newEntity.uint64)
+        XCTAssertEqual(entity.uint, newEntity.uint)
+        
+        XCTAssertEqual(entity.int8, newEntity.int8)
+        XCTAssertEqual(entity.int16, newEntity.int16)
+        XCTAssertEqual(entity.int32, newEntity.int32)
+        XCTAssertEqual(entity.int64, newEntity.int64)
+        XCTAssertEqual(entity.int, newEntity.int)
+        
+        XCTAssertEqual(entity.name, newEntity.name)
+        XCTAssertEqual(entity.bool, newEntity.bool)
+        XCTAssertEqual(entity.´enum´, newEntity.´enum´)
+        XCTAssertEqual(entity.float, newEntity.float)
+        XCTAssertEqual(entity.double, newEntity.double)
+        XCTAssertEqual(entity.bytes, newEntity.bytes)
+        
+        XCTAssertEqual(entity.identifier, newEntity.identifier)
+        
+        XCTAssertEqual(entity.uint8Bits, newEntity.uint8Bits)
+        XCTAssertEqual(entity.uint16Bits, newEntity.uint16Bits)
+        XCTAssertEqual(entity.uint32Bits, newEntity.uint32Bits)
+        XCTAssertEqual(entity.uint64Bits, newEntity.uint64Bits)
+        XCTAssertEqual(entity.uintBits, newEntity.uintBits)
+        XCTAssertEqual(entity.uintBits999, newEntity.uintBits999)
+        
+        
+        XCTAssert(abs(entity.floatBits - newEntity.floatBits) < 0.01)
+        XCTAssert(abs(entity.doubleBits - newEntity.doubleBits) < 0.01)
+        XCTAssertEqual(entity.bitArray, newEntity.bitArray)
+        XCTAssertEqual(entity.boundedArray, newEntity.boundedArray)
     }
 }

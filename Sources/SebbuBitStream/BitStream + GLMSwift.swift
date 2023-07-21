@@ -4,7 +4,7 @@
 //
 //  Created by Sebastian Toivonen on 8.8.2021.
 //
-
+/*
 import GLMSwift
 
 @propertyWrapper
@@ -278,3 +278,4 @@ public extension DoubleCompressor {
         Vector4(x: try read(from: &bitStream), y: try read(from: &bitStream), z: try read(from: &bitStream), w: try read(from: &bitStream))
     }
 }
+*/

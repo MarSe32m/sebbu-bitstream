@@ -50,7 +50,7 @@ extension String {
     }
 }
 
-extension Array: BitStreamCodable where Element == UInt8 {
+extension Array where Element == UInt8 {
     public init(from bitStream: inout ReadableBitStream) throws {
         self = try bitStream.read()
     }

@@ -70,6 +70,7 @@ public struct DoubleCompressor {
 
 
 //Warning: This isn't really great... Use only for relatively small integers / ranges
+//TODO: Reimplement, scale the value to 0 -> UInt?.max then unscale
 public struct IntCompressor {
     public let minValue: Int
 

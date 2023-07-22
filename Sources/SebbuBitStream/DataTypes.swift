@@ -5,9 +5,10 @@
 //  Created by Sebastian Toivonen on 8.8.2021.
 //
 //  Copyright © 2021 Sebastian Toivonen. All rights reserved.
-import Foundation
 
+//TODO: Add a #BitStreamCodable macros that gives automatic conformance to BitStreamCodable and implements the init and encode methods automatically
 @propertyWrapper
+//TODO: Convert to macro #BitUnsigned(bits: Int)
 public struct BitUnsigned<T: UnsignedInteger & FixedWidthInteger> {
     public var wrappedValue: T = 0
     public let bits: Int
@@ -22,6 +23,7 @@ public struct BitUnsigned<T: UnsignedInteger & FixedWidthInteger> {
 }
 
 @propertyWrapper
+//TODO: Convert to macro #BitSigned(bits: Int)
 public struct BitSigned {
     public var wrappedValue: Int = 0
     public let min: Int
@@ -34,6 +36,7 @@ public struct BitSigned {
 }
 
 @propertyWrapper
+//TODO: Convert to macro #BitFloat(min: Float, max: Float, bits: Int)
 public struct BitFloat {
     public var wrappedValue: Float = 0
     public let minValue: Float
@@ -48,6 +51,7 @@ public struct BitFloat {
 }
 
 @propertyWrapper
+//TODO: Convert to macro #BitDouble(min: Double, max: Double, bits: Int)
 public struct BitDouble {
     public var wrappedValue: Double = 0
     public let minValue: Double
@@ -62,18 +66,20 @@ public struct BitDouble {
 }
 
 @propertyWrapper
+//TODO: Convert to macro #BitArray(maxCount: UInt, valueBits: Int)
 public struct BitArray<Value> where Value: UnsignedInteger {
     public var wrappedValue: Array<Value> = []
-    public let bits: Int
+    public let countBits: Int
     public let valueBits: Int
     
     public init(maxCount: UInt, valueBits: Int) {
-        bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        self.countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
         self.valueBits = valueBits
     }
 }
 
 @propertyWrapper
+//TODO: Convert to macro #BoundedArray(maxCount: UInt)
 public struct BoundedArray<Value> where Value: BitStreamCodable {
     public var wrappedValue: Array<Value> = []
     public let bits: Int
@@ -122,15 +128,23 @@ public extension WritableBitStream {
         value.encode(to: &self)
     }
     
+    @inlinable
+    mutating func appendObject<T>(_ value: T?) where T: BitStreamEncodable {
+        append(value != nil)
+        if let value = value {
+            value.encode(to: &self)
+        }
+    }
+    
     /// BitArray encoding
     @inlinable
     @_specialize(exported: true, kind: full, where T == UInt8)
     @_specialize(exported: true, kind: full, where T == UInt16)
     @_specialize(exported: true, kind: full, where T == UInt32)
     @_specialize(exported: true, kind: full, where T == UInt64)
-    @_specialize(where T == UInt)
+    @_specialize(exported: true, kind: full, where T == UInt)
     mutating func append<T>(_ value: BitArray<T>) where T: UnsignedInteger {
-        append(UInt32(value.wrappedValue.count), numberOfBits: value.bits)
+        append(UInt32(value.wrappedValue.count), numberOfBits: value.countBits)
         for element in value.wrappedValue {
             append(element, numberOfBits: value.valueBits)
         }
@@ -190,6 +204,12 @@ public extension ReadableBitStream {
         return try T(from: &self)
     }
     
+    @inlinable
+    mutating func readObject<T>() throws -> T? where T: BitStreamCodable {
+        let hasValue = try read() as Bool
+        return hasValue ? try readObject() as T : nil
+    }
+    
     /// Array with chosen bit value for count decoding
     @inlinable
     @_specialize(exported: true, kind: full, where T == UInt8)
@@ -198,7 +218,7 @@ public extension ReadableBitStream {
     @_specialize(exported: true, kind: full, where T == UInt64)
     @_specialize(exported: true, kind: full, where T == UInt)
     mutating func read<T>(_ value: inout BitArray<T>) throws where T: UnsignedInteger {
-        let count = Int(try self.read(numberOfBits: value.bits) as UInt32)
+        let count = Int(try self.read(numberOfBits: value.countBits) as UInt32)
         value.wrappedValue.removeAll(keepingCapacity: true)
         value.wrappedValue.reserveCapacity(count)
         for _ in 0..<count {
@@ -213,7 +233,7 @@ public extension ReadableBitStream {
         value.wrappedValue.removeAll(keepingCapacity: true)
         value.wrappedValue.reserveCapacity(count)
         for _ in 0..<count {
-            value.wrappedValue.append(try T(from: &self))
+            value.wrappedValue.append(try readObject())
         }
     }
 }

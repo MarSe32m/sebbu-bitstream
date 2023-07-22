@@ -70,36 +70,47 @@ public struct DoubleCompressor {
 
 
 //Warning: This isn't really great... Use only for relatively small integers / ranges
-//TODO: Reimplement, scale the value to 0 -> UInt?.max then unscale
 public struct IntCompressor {
     public let minValue: Int
+    public let maxValue: Int
 
     @usableFromInline
-    internal let absoluteMinValue: Int
+    internal let absoluteMinValue: UInt
     
-    public let maxValue: Int
     public let bits: Int
-    public let maxBitValue: Int
     
     public init(minValue: Int, maxValue: Int) {
         assert(minValue < maxValue)
-        assert(minValue > .min)
-        assert(maxValue < .max)
         self.minValue = minValue
-        self.absoluteMinValue = abs(minValue)
         self.maxValue = maxValue
-        self.bits = Int.bitWidth - (maxValue - minValue).leadingZeroBitCount
-        self.maxBitValue = maxValue - minValue
+        
+        self.absoluteMinValue = minValue.magnitude
+        
+        let absoluteMaxValue = maxValue <= 0 ? minValue.magnitude - maxValue.magnitude : minValue.magnitude + maxValue.magnitude
+        self.bits = UInt.bitWidth - absoluteMaxValue.leadingZeroBitCount
     }
     
     @inlinable
     public func write(_ value: Int, to bitStream: inout WritableBitStream) {
-        bitStream.append(UInt(max(0, min(maxBitValue, value &+ absoluteMinValue))), numberOfBits: bits)
+        assert(value >= minValue)
+        assert(value <= maxValue)
+        let (partialValue, overflow) = value.subtractingReportingOverflow(minValue)
+        let storedValue: UInt
+        if overflow {
+            storedValue = Int.max.magnitude + Int.min.distance(to: partialValue).magnitude
+        } else {
+            storedValue = UInt(partialValue)
+        }
+        bitStream.append(storedValue, numberOfBits: bits)
     }
     
     @inlinable
     public func read(from bitStream: inout ReadableBitStream) throws -> Int {
-        let value: UInt = try bitStream.read(numberOfBits: bits)
-        return Int(value) &- absoluteMinValue
+        let storedValue: UInt = try bitStream.read(numberOfBits: bits)
+        if storedValue <= Int.max.magnitude {
+            return Int(storedValue) + minValue
+        } else {
+            return Int(storedValue - absoluteMinValue) + 1
+        }
     }
 }

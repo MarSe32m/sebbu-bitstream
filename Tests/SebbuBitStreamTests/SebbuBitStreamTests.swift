@@ -59,7 +59,33 @@ final class SebbuBitStreamTests: XCTestCase {
     }
 
     func testComplexType() throws {
-        let entity = Entity(uint8: 154, uint16: 8832, uint32: 718348123, uint64: 918239485, uint: 123895851, int8: -75, int16: -3423, int32: -234555, int64: -2345261462, int: -234692384, name: "My name is Oliver Quèen!", bool: true, ´enum´: .player, float: 1.02345, double: -1.2143525, bytes: [1,2,3,5,6,7,4,2,4,67,3,2,4,5,7,2,129], identifier: .init(), count: 88, uint8bits: 5, uint16bits: 17, uint32bits: 663, uint64bits: 235234, uintbits: 3233, uintBits999: 887, floatBits: -10, doubleBits: 99, bitArray: [1,2,3,5,6,7,4,6], boundedArray: [Packet(sequence: 1), Packet(sequence: 1), Packet(sequence: 1), Packet(sequence: 1)])
+        let entity = Entity(uint8: .random(in: .min ... .max), uint16: .random(in: .min ... .max), uint32: .random(in: .min ... .max),
+                            uint64: .random(in: .min ... .max), uint: .random(in: .min ... .max), int8: .random(in: .min ... .max),
+                            int16: .random(in: .min ... .max), int32: .random(in: .min ... .max), int64: .random(in: .min ... .max),
+                            int: .random(in: .min ... .max), name: "My name is Oliver Quèen!", bool: .random(), ´enum´: .random(),
+                            float: .random(in: -10000...10000), double: .random(in: -100000...100000),
+                            bytes: (0..<Int.random(in: 128...1024)).map {_ in UInt8.random(in: .min ... .max) },
+                            identifier: .init(),
+                            uint8Opt: Bool.random() ? nil : .random(in: .min ... .max),
+                            uint16Opt: Bool.random() ? nil : .random(in: .min ... .max),
+                            uint32Opt: Bool.random() ? nil : .random(in: .min ... .max),
+                            uint64Opt: Bool.random() ? nil : .random(in: .min ... .max),
+                            uintOpt: Bool.random() ? nil : .random(in: .min ... .max),
+                            int8Opt: Bool.random() ? nil : .random(in: .min ... .max),
+                            int16Opt: Bool.random() ? nil : .random(in: .min ... .max),
+                            int32Opt: Bool.random() ? nil : .random(in: .min ... .max),
+                            int64Opt: Bool.random() ? nil : .random(in: .min ... .max),
+                            intOpt: Bool.random() ? nil : .random(in: .min ... .max),
+                            nameOpt: Bool.random() ? nil : "My name is again Oliver Quèen!",
+                            boolOpt: Bool.random() ? nil : Bool.random(),
+                            enumOpt: Bool.random() ? nil : .random(),
+                            floatOpt: Bool.random() ? nil : .random(in: -10000...10000),
+                            doubleOpt: Bool.random() ? nil : .random(in: -100000...100000),
+                            bytesOpt: Bool.random() ? nil : (0..<Int.random(in: 16...199)).map {_ in UInt8.random(in: .min ... .max) },
+                            identifierOpt: Bool.random() ? nil : .init(),
+                            count: 88, uint8bits: 5, uint16bits: 17, uint32bits: 663, uint64bits: 235234,
+                            uintbits: 3233, uintBits999: 887, floatBits: -10, doubleBits: 99, bitArray: [1,2,3,5,6,7,4,6],
+                            boundedArray: [Packet(sequence: 1), Packet(sequence: 1), Packet(sequence: 1), Packet(sequence: 1)])
         var writeStream = WritableBitStream()
         entity.encode(to: &writeStream)
         var readStream = ReadableBitStream(bytes: writeStream.packBytes())
@@ -71,6 +97,54 @@ final class SebbuBitStreamTests: XCTestCase {
         readStream = try ReadableBitStream(bytes: writeStream.packBytes(withCrc: true), crcValidated: true)
         newEntity = try readStream.readObject()
         try assert(entity: entity, newEntity: newEntity)
+    }
+    
+    func testIntCompressor() throws {
+        var writeStream = WritableBitStream()
+        try _testIntCompressor(lowerBound: 0, upperBound: 1, writeStream: &writeStream)
+        
+        try _testIntCompressor(lowerBound: Int(Int8.min), upperBound: Int(Int8.max), writeStream: &writeStream)
+        try _testIntCompressor(lowerBound: Int(Int16.min), upperBound: Int(Int16.max), writeStream: &writeStream)
+        try _testIntCompressor(lowerBound: Int(Int32.min), upperBound: Int(Int32.max), writeStream: &writeStream)
+        try _testIntCompressor(lowerBound: Int.min, upperBound: Int.max, writeStream: &writeStream)
+        
+        try _testIntCompressor(lowerBound: 0, upperBound: Int(Int8.max), writeStream: &writeStream)
+        try _testIntCompressor(lowerBound: 0, upperBound: Int(Int16.max), writeStream: &writeStream)
+        try _testIntCompressor(lowerBound: 0, upperBound: Int(Int32.max), writeStream: &writeStream)
+        try _testIntCompressor(lowerBound: 0, upperBound: Int.max, writeStream: &writeStream)
+        
+        try _testIntCompressor(lowerBound: Int(Int8.min), upperBound: 0, writeStream: &writeStream)
+        try _testIntCompressor(lowerBound: Int(Int16.min), upperBound: 0, writeStream: &writeStream)
+        try _testIntCompressor(lowerBound: Int(Int32.min), upperBound: 0, writeStream: &writeStream)
+        try _testIntCompressor(lowerBound: Int.min, upperBound: 0, writeStream: &writeStream)
+        
+        for _ in 0..<10 {
+            try _testIntCompressor(lowerBound: Int.random(in: -10000000 ... -1), upperBound: Int.random(in: 1...10000000), writeStream: &writeStream)
+        }
+    }
+    
+    private func _testIntCompressor(lowerBound: Int, upperBound: Int, writeStream: inout WritableBitStream) throws {
+        writeStream.reset()
+        let intCompressor = IntCompressor(minValue: lowerBound, maxValue: upperBound)
+        var writtenValues: [Int] = []
+        var currentValue = lowerBound
+        while currentValue <= upperBound {
+            writtenValues.append(currentValue)
+            intCompressor.write(currentValue, to: &writeStream)
+            let valueToAdd = max(max(upperBound / 40_000, abs(lowerBound + 1) / 40_000), 1)
+            let (partialValue, overflow) = currentValue.addingReportingOverflow(Int.random(in: 1 ... valueToAdd))
+            currentValue = partialValue
+            if overflow {
+                writtenValues.append(upperBound)
+                intCompressor.write(upperBound, to: &writeStream)
+                break
+            }
+        }
+        
+        var readStream = try ReadableBitStream(bytes: writeStream.packBytes(withCrc: true), crcValidated: true)
+        for writtenValue in writtenValues {
+            XCTAssertEqual(writtenValue, try intCompressor.read(from: &readStream))
+        }
     }
     
     private func test<T>(lowerBound: T, upperBound: T) throws where T: FixedWidthInteger {
@@ -105,6 +179,10 @@ final class SebbuBitStreamTests: XCTestCase {
         case ai
         case cpu
         case robot
+        
+        static func random() -> EntityType {
+            allCases.randomElement()!
+        }
     }
     
     private struct Entity: BitStreamCodable {
@@ -119,16 +197,31 @@ final class SebbuBitStreamTests: XCTestCase {
         public let int32: Int32
         public let int64: Int64
         public let int: Int
-        
         public let name: String
         public let bool: Bool
         public let ´enum´: EntityType
         public let float: Float
         public let double: Double
         public let bytes: [UInt8]
-        
-        //MARK: Custom bitStreamCodable
         public let identifier: UUID
+        
+        public let uint8Opt: UInt8?
+        public let uint16Opt: UInt16?
+        public let uint32Opt: UInt32?
+        public let uint64Opt: UInt64?
+        public let uintOpt: UInt?
+        public let int8Opt: Int8?
+        public let int16Opt: Int16?
+        public let int32Opt: Int32?
+        public let int64Opt: Int64?
+        public let intOpt: Int?
+        public let nameOpt: String?
+        public let boolOpt: Bool?
+        public let enumOpt: EntityType?
+        public let floatOpt: Float?
+        public let doubleOpt: Double?
+        public let bytesOpt: [UInt8]?
+        public let identifierOpt: UUID?
         
         //MARK: BitDataTypes
         @BitSigned(min: -9900, max: 88245)
@@ -159,11 +252,16 @@ final class SebbuBitStreamTests: XCTestCase {
         @BoundedArray(maxCount: 16)
         public var boundedArray: [Packet]
         
-        
         internal init(uint8: UInt8, uint16: UInt16, uint32: UInt32, uint64: UInt64, uint: UInt,
                       int8: Int8, int16: Int16, int32: Int32, int64: Int64, int: Int,
                       name: String, bool: Bool, ´enum´: SebbuBitStreamTests.EntityType,
-                      float: Float, double: Double, bytes: [UInt8], identifier: UUID, count: Int, uint8bits: UInt8, uint16bits: UInt16, uint32bits: UInt32, uint64bits: UInt64, uintbits: UInt, uintBits999: UInt32,
+                      float: Float, double: Double, bytes: [UInt8], identifier: UUID,
+                      uint8Opt: UInt8?, uint16Opt: UInt16?, uint32Opt: UInt32?, uint64Opt: UInt64?, uintOpt: UInt?,
+                      int8Opt: Int8?, int16Opt: Int16?, int32Opt: Int32?, int64Opt: Int64?, intOpt: Int?,
+                      nameOpt: String?, boolOpt: Bool?, enumOpt: SebbuBitStreamTests.EntityType?,
+                      floatOpt: Float?, doubleOpt: Double?, bytesOpt: [UInt8]?, identifierOpt: UUID?,
+                      count: Int, uint8bits: UInt8, uint16bits: UInt16, uint32bits: UInt32,
+                      uint64bits: UInt64, uintbits: UInt, uintBits999: UInt32,
                       floatBits: Float, doubleBits: Double, bitArray: [UInt16], boundedArray: [Packet]) {
             self.uint8 = uint8
             self.uint16 = uint16
@@ -182,6 +280,25 @@ final class SebbuBitStreamTests: XCTestCase {
             self.double = double
             self.bytes = bytes
             self.identifier = identifier
+            
+            self.uint8Opt = uint8Opt
+            self.uint16Opt = uint16Opt
+            self.uint32Opt = uint32Opt
+            self.uint64Opt = uint64Opt
+            self.uintOpt = uintOpt
+            self.int8Opt = int8Opt
+            self.int16Opt = int16Opt
+            self.int32Opt = int32Opt
+            self.int64Opt = int64Opt
+            self.intOpt = intOpt
+            self.nameOpt = nameOpt
+            self.boolOpt = boolOpt
+            self.enumOpt = enumOpt
+            self.floatOpt = floatOpt
+            self.doubleOpt = doubleOpt
+            self.bytesOpt = bytesOpt
+            self.identifierOpt = identifierOpt
+            
             self.count = count
             self.uint8Bits = uint8bits
             self.uint16Bits = uint16bits
@@ -213,7 +330,26 @@ final class SebbuBitStreamTests: XCTestCase {
             float = try bitStream.read()
             double = try bitStream.read()
             bytes = try bitStream.read()
-            identifier = try UUID(from: &bitStream)
+            identifier = try bitStream.readObject()
+            
+            uint8Opt = try bitStream.read()
+            uint16Opt = try bitStream.read()
+            uint32Opt = try bitStream.read()
+            uint64Opt = try bitStream.read()
+            uintOpt = try bitStream.read()
+            int8Opt = try bitStream.read()
+            int16Opt = try bitStream.read()
+            int32Opt = try bitStream.read()
+            int64Opt = try bitStream.read()
+            intOpt = try bitStream.read()
+            nameOpt = try bitStream.read()
+            boolOpt = try bitStream.read()
+            enumOpt = try bitStream.read()
+            floatOpt = try bitStream.read()
+            doubleOpt = try bitStream.read()
+            bytesOpt = try bitStream.read()
+            identifierOpt = try bitStream.readObject()
+            
             try bitStream.read(&_count)
             try bitStream.read(&_uint8Bits)
             try bitStream.read(&_uint16Bits)
@@ -245,6 +381,25 @@ final class SebbuBitStreamTests: XCTestCase {
             bitStream.append(double)
             bitStream.append(bytes)
             bitStream.appendObject(identifier)
+            
+            bitStream.append(uint8Opt)
+            bitStream.append(uint16Opt)
+            bitStream.append(uint32Opt)
+            bitStream.append(uint64Opt)
+            bitStream.append(uintOpt)
+            bitStream.append(int8Opt)
+            bitStream.append(int16Opt)
+            bitStream.append(int32Opt)
+            bitStream.append(int64Opt)
+            bitStream.append(intOpt)
+            bitStream.append(nameOpt)
+            bitStream.append(boolOpt)
+            bitStream.append(enumOpt)
+            bitStream.append(floatOpt)
+            bitStream.append(doubleOpt)
+            bitStream.append(bytesOpt)
+            bitStream.appendObject(identifierOpt)
+            
             bitStream.append(_count)
             bitStream.append(_uint8Bits)
             bitStream.append(_uint16Bits)
@@ -280,6 +435,28 @@ final class SebbuBitStreamTests: XCTestCase {
         XCTAssertEqual(entity.bytes, newEntity.bytes)
         
         XCTAssertEqual(entity.identifier, newEntity.identifier)
+        
+        // Optionals
+        XCTAssertEqual(entity.uint8Opt, newEntity.uint8Opt)
+        XCTAssertEqual(entity.uint16Opt, newEntity.uint16Opt)
+        XCTAssertEqual(entity.uint32Opt, newEntity.uint32Opt)
+        XCTAssertEqual(entity.uint64Opt, newEntity.uint64Opt)
+        XCTAssertEqual(entity.uintOpt, newEntity.uintOpt)
+        
+        XCTAssertEqual(entity.int8Opt, newEntity.int8Opt)
+        XCTAssertEqual(entity.int16Opt, newEntity.int16Opt)
+        XCTAssertEqual(entity.int32Opt, newEntity.int32Opt)
+        XCTAssertEqual(entity.int64Opt, newEntity.int64Opt)
+        XCTAssertEqual(entity.intOpt, newEntity.intOpt)
+        
+        XCTAssertEqual(entity.nameOpt, newEntity.nameOpt)
+        XCTAssertEqual(entity.boolOpt, newEntity.boolOpt)
+        XCTAssertEqual(entity.enumOpt, newEntity.enumOpt)
+        XCTAssertEqual(entity.floatOpt, newEntity.floatOpt)
+        XCTAssertEqual(entity.doubleOpt, newEntity.doubleOpt)
+        XCTAssertEqual(entity.bytesOpt, newEntity.bytesOpt)
+        
+        XCTAssertEqual(entity.identifierOpt, newEntity.identifierOpt)
         
         XCTAssertEqual(entity.uint8Bits, newEntity.uint8Bits)
         XCTAssertEqual(entity.uint16Bits, newEntity.uint16Bits)

@@ -62,6 +62,14 @@ public struct WritableBitStream {
         appendBit(UInt8(value ? 1 : 0))
     }
     
+    @inlinable
+    public mutating func append(_ value: Bool?) {
+        append(value != nil)
+        if let value = value {
+            append(value)
+        }
+    }
+    
     //MARK: - Append FixedWidthInteger
     @inlinable
     @_specialize(exported: true, kind: full, where T == UInt8)
@@ -88,6 +96,24 @@ public struct WritableBitStream {
     @_specialize(exported: true, kind: full, where T == UInt32)
     @_specialize(exported: true, kind: full, where T == UInt64)
     @_specialize(exported: true, kind: full, where T == UInt)
+    @_specialize(exported: true, kind: full, where T == Int8)
+    @_specialize(exported: true, kind: full, where T == Int16)
+    @_specialize(exported: true, kind: full, where T == Int32)
+    @_specialize(exported: true, kind: full, where T == Int64)
+    @_specialize(exported: true, kind: full, where T == Int)
+    public mutating func append<T>(_ value: T?) where T: FixedWidthInteger {
+        append(value != nil)
+        if let value = value {
+            append(value)
+        }
+    }
+    
+    @inlinable
+    @_specialize(exported: true, kind: full, where T == UInt8)
+    @_specialize(exported: true, kind: full, where T == UInt16)
+    @_specialize(exported: true, kind: full, where T == UInt32)
+    @_specialize(exported: true, kind: full, where T == UInt64)
+    @_specialize(exported: true, kind: full, where T == UInt)
     public mutating func append<T>(_ value: T, numberOfBits: Int) where T: UnsignedInteger {
         var tempValue = value
         assert(numberOfBits <= value.bitWidth)
@@ -97,10 +123,32 @@ public struct WritableBitStream {
         }
     }
     
+    @inlinable
+    @_specialize(exported: true, kind: full, where T == UInt8)
+    @_specialize(exported: true, kind: full, where T == UInt16)
+    @_specialize(exported: true, kind: full, where T == UInt32)
+    @_specialize(exported: true, kind: full, where T == UInt64)
+    @_specialize(exported: true, kind: full, where T == UInt)
+    public mutating func append<T>(_ value: T?, numberOfBits: Int) where T: UnsignedInteger {
+        append(value != nil)
+        if let value = value {
+            append(value, numberOfBits: numberOfBits)
+        }
+    }
+    
+    
     // Appends an integer-based enum using the minimal number of bits for its set of possible cases.
     @inlinable
     public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
         append(value.rawValue, numberOfBits: T.bits)
+    }
+    
+    @inlinable
+    public mutating func append<T>(_ value: T?) where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
+        append(value != nil)
+        if let value = value {
+            append(value)
+        }
     }
 
     @inlinable
@@ -109,13 +157,37 @@ public struct WritableBitStream {
     }
     
     @inlinable
+    public mutating func append(_ value: Float?) {
+        append(value != nil)
+        if let value = value {
+            append(value)
+        }
+    }
+    
+    @inlinable
     public mutating func append(_ value: Double) {
         append(value.bitPattern)
     }
     
     @inlinable
+    public mutating func append(_ value: Double?) {
+        append(value != nil)
+        if let value = value {
+            append(value)
+        }
+    }
+    
+    @inlinable
     public mutating func append(_ value: String) {
         append([UInt8](value.utf8))
+    }
+    
+    @inlinable
+    public mutating func append(_ value: String?) {
+        append(value != nil)
+        if let value = value {
+            append(value)
+        }
     }
     
     @inlinable
@@ -125,6 +197,14 @@ public struct WritableBitStream {
         append(length)
         bytes.append(contentsOf: value)
         endBitIndex += Int(length * 8)
+    }
+    
+    @inlinable
+    public mutating func append(_ value: [UInt8]?) {
+        append(value != nil)
+        if let value = value {
+            append(value)
+        }
     }
     
     @inlinable
@@ -219,6 +299,12 @@ public struct ReadableBitStream {
     }
     
     @inlinable
+    public mutating func read() throws -> Bool? {
+        let hasValue = try read() as Bool
+        return hasValue ? try read() as Bool : nil
+    }
+    
+    @inlinable
     public mutating func read() throws -> Float {
         var result: Float = 0.0
         do {
@@ -230,6 +316,12 @@ public struct ReadableBitStream {
     }
     
     @inlinable
+    public mutating func read() throws -> Float? {
+        let hasValue = try read() as Bool
+        return hasValue ? try read() as Float : nil
+    }
+    
+    @inlinable
     public mutating func read() throws -> Double {
         var result: Double = 0.0
         do {
@@ -238,6 +330,12 @@ public struct ReadableBitStream {
             throw error
         }
         return result
+    }
+    
+    @inlinable
+    public mutating func read() throws -> Double? {
+        let hasValue = try read() as Bool
+        return hasValue ? try read() as Double : nil
     }
     
     @inlinable
@@ -257,9 +355,25 @@ public struct ReadableBitStream {
         }
         var bitPattern: T = 0
         for index in 0..<T.bitWidth {
-            bitPattern |= (T(readBit()) << index)
+            bitPattern |= T(readBit()) << index
         }
         return bitPattern
+    }
+    
+    @inlinable
+    @_specialize(exported: true, kind: full, where T == UInt8)
+    @_specialize(exported: true, kind: full, where T == UInt16)
+    @_specialize(exported: true, kind: full, where T == UInt32)
+    @_specialize(exported: true, kind: full, where T == UInt64)
+    @_specialize(exported: true, kind: full, where T == UInt)
+    @_specialize(exported: true, kind: full, where T == Int8)
+    @_specialize(exported: true, kind: full, where T == Int16)
+    @_specialize(exported: true, kind: full, where T == Int32)
+    @_specialize(exported: true, kind: full, where T == Int64)
+    @_specialize(exported: true, kind: full, where T == Int)
+    public mutating func read<T>() throws -> T? where T: FixedWidthInteger {
+        let hasValue = try read() as Bool
+        return hasValue ? try read() as T : nil
     }
     
     @inlinable
@@ -274,9 +388,20 @@ public struct ReadableBitStream {
         }
         var bitPattern: T = 0
         for index in 0..<numberOfBits {
-            bitPattern |= (T(readBit()) << index)
+            bitPattern |= T(readBit()) << index
         }
         return bitPattern
+    }
+    
+    @inlinable
+    @_specialize(exported: true, kind: full, where T == UInt8)
+    @_specialize(exported: true, kind: full, where T == UInt16)
+    @_specialize(exported: true, kind: full, where T == UInt32)
+    @_specialize(exported: true, kind: full, where T == UInt64)
+    @_specialize(exported: true, kind: full, where T == UInt)
+    public mutating func read<T>(numberOfBits: Int) throws -> T? where T: UnsignedInteger {
+        let hasValue = try read() as Bool
+        return hasValue ? try read(numberOfBits: numberOfBits) as T : nil
     }
     
     @inlinable
@@ -296,7 +421,12 @@ public struct ReadableBitStream {
     }
     
     @inlinable
-    //TODO: Add test
+    public mutating func read() throws -> [UInt8]? {
+        let hasValue = try read() as Bool
+        return hasValue ? try read() as [UInt8] : nil
+    }
+    
+    @inlinable
     public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
         let rawValue = try read(numberOfBits: T.bits) as UInt32
         guard let result = T(rawValue: rawValue) else {
@@ -304,11 +434,23 @@ public struct ReadableBitStream {
         }
         return result
     }
+    
+    @inlinable
+    public mutating func read<T>() throws -> T? where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
+        let hasValue = try read() as Bool
+        return hasValue ? try read() as T : nil
+    }
 
     @inlinable
     public mutating func read() throws -> String {
         let bytes: [UInt8] = try read()
         return String(decoding: bytes, as: Unicode.UTF8.self)
+    }
+    
+    @inlinable
+    public mutating func read() throws -> String? {
+        let hasValue = try read() as Bool
+        return hasValue ? try read() as String : nil
     }
     
     @inlinable

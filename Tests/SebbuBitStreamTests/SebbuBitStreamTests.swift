@@ -1,23 +1,9 @@
 import XCTest
 import SebbuBitStream
 import SebbuBitStreamFoundation
+import Foundation
 
 final class SebbuBitStreamTests: XCTestCase {
-    func testBenchmarking() throws {
-        measure {
-            var writeStream = WritableBitStream(size: 16)
-            writeStream.append(163 as UInt64)
-            writeStream.append(164 as UInt64)
-            let packedData = writeStream.packBytes()
-            var readStream = ReadableBitStream(bytes: packedData)
-            let value1 = try! readStream.read() as UInt64
-            let value2 = try! readStream.read() as UInt64
-            if value1 | value2 == 0 {
-                print("Hello")
-            }
-        }
-    }
-    
     func testUInt8Coding() throws {
         try test(lowerBound: UInt8.min, upperBound: .max)
     }
@@ -66,6 +52,7 @@ final class SebbuBitStreamTests: XCTestCase {
                             float: .random(in: -10000...10000), double: .random(in: -100000...100000),
                             bytes: (0..<Int.random(in: 128...1024)).map {_ in UInt8.random(in: .min ... .max) },
                             identifier: .init(),
+                            packets: (0..<15).map {_ in .random() },
                             uint8Opt: Bool.random() ? nil : .random(in: .min ... .max),
                             uint16Opt: Bool.random() ? nil : .random(in: .min ... .max),
                             uint32Opt: Bool.random() ? nil : .random(in: .min ... .max),
@@ -83,6 +70,8 @@ final class SebbuBitStreamTests: XCTestCase {
                             doubleOpt: Bool.random() ? nil : .random(in: -100000...100000),
                             bytesOpt: Bool.random() ? nil : (0..<Int.random(in: 16...199)).map {_ in UInt8.random(in: .min ... .max) },
                             identifierOpt: Bool.random() ? nil : .init(),
+                            packetsOpt: Bool.random() ? nil : (0...120).map {_ in .random() },
+                            packetsAreOpt: (0...120).map {_ in Bool.random() ? nil : .random() },
                             count: 88, uint8bits: 5, uint16bits: 17, uint32bits: 663, uint64bits: 235234,
                             uintbits: 3233, uintBits999: 887, floatBits: -10, doubleBits: 99, bitArray: [1,2,3,5,6,7,4,6],
                             boundedArray: [Packet(sequence: 1), Packet(sequence: 1), Packet(sequence: 1), Packet(sequence: 1)])
@@ -172,6 +161,10 @@ final class SebbuBitStreamTests: XCTestCase {
         func encode(to bitStream: inout WritableBitStream) {
             bitStream.append(sequence)
         }
+        
+        static func random() -> Packet {
+            Packet(sequence: .random(in: .min ... .max))
+        }
     }
     
     private enum EntityType: UInt32, CaseIterable {
@@ -204,6 +197,7 @@ final class SebbuBitStreamTests: XCTestCase {
         public let double: Double
         public let bytes: [UInt8]
         public let identifier: UUID
+        public let packets: [Packet]
         
         public let uint8Opt: UInt8?
         public let uint16Opt: UInt16?
@@ -222,6 +216,8 @@ final class SebbuBitStreamTests: XCTestCase {
         public let doubleOpt: Double?
         public let bytesOpt: [UInt8]?
         public let identifierOpt: UUID?
+        public let packetsOpt: [Packet]?
+        public let packetsAreOpt: [Packet?]
         
         //MARK: BitDataTypes
         @BitSigned(min: -9900, max: 88245)
@@ -255,11 +251,12 @@ final class SebbuBitStreamTests: XCTestCase {
         internal init(uint8: UInt8, uint16: UInt16, uint32: UInt32, uint64: UInt64, uint: UInt,
                       int8: Int8, int16: Int16, int32: Int32, int64: Int64, int: Int,
                       name: String, bool: Bool, ´enum´: SebbuBitStreamTests.EntityType,
-                      float: Float, double: Double, bytes: [UInt8], identifier: UUID,
+                      float: Float, double: Double, bytes: [UInt8], identifier: UUID, packets: [Packet],
                       uint8Opt: UInt8?, uint16Opt: UInt16?, uint32Opt: UInt32?, uint64Opt: UInt64?, uintOpt: UInt?,
                       int8Opt: Int8?, int16Opt: Int16?, int32Opt: Int32?, int64Opt: Int64?, intOpt: Int?,
                       nameOpt: String?, boolOpt: Bool?, enumOpt: SebbuBitStreamTests.EntityType?,
                       floatOpt: Float?, doubleOpt: Double?, bytesOpt: [UInt8]?, identifierOpt: UUID?,
+                      packetsOpt: [Packet]?, packetsAreOpt: [Packet?],
                       count: Int, uint8bits: UInt8, uint16bits: UInt16, uint32bits: UInt32,
                       uint64bits: UInt64, uintbits: UInt, uintBits999: UInt32,
                       floatBits: Float, doubleBits: Double, bitArray: [UInt16], boundedArray: [Packet]) {
@@ -280,6 +277,7 @@ final class SebbuBitStreamTests: XCTestCase {
             self.double = double
             self.bytes = bytes
             self.identifier = identifier
+            self.packets = packets
             
             self.uint8Opt = uint8Opt
             self.uint16Opt = uint16Opt
@@ -298,6 +296,8 @@ final class SebbuBitStreamTests: XCTestCase {
             self.doubleOpt = doubleOpt
             self.bytesOpt = bytesOpt
             self.identifierOpt = identifierOpt
+            self.packetsOpt = packetsOpt
+            self.packetsAreOpt = packetsAreOpt
             
             self.count = count
             self.uint8Bits = uint8bits
@@ -331,6 +331,7 @@ final class SebbuBitStreamTests: XCTestCase {
             double = try bitStream.read()
             bytes = try bitStream.read()
             identifier = try bitStream.readObject()
+            packets = try bitStream.readArray()
             
             uint8Opt = try bitStream.read()
             uint16Opt = try bitStream.read()
@@ -349,6 +350,8 @@ final class SebbuBitStreamTests: XCTestCase {
             doubleOpt = try bitStream.read()
             bytesOpt = try bitStream.read()
             identifierOpt = try bitStream.readObject()
+            packetsOpt = try bitStream.readObject()
+            packetsAreOpt = try bitStream.readObject()
             
             try bitStream.read(&_count)
             try bitStream.read(&_uint8Bits)
@@ -381,6 +384,7 @@ final class SebbuBitStreamTests: XCTestCase {
             bitStream.append(double)
             bitStream.append(bytes)
             bitStream.appendObject(identifier)
+            bitStream.appendArray(packets)
             
             bitStream.append(uint8Opt)
             bitStream.append(uint16Opt)
@@ -399,6 +403,8 @@ final class SebbuBitStreamTests: XCTestCase {
             bitStream.append(doubleOpt)
             bitStream.append(bytesOpt)
             bitStream.appendObject(identifierOpt)
+            bitStream.appendObject(packetsOpt)
+            bitStream.appendArray(packetsAreOpt)
             
             bitStream.append(_count)
             bitStream.append(_uint8Bits)
@@ -435,6 +441,7 @@ final class SebbuBitStreamTests: XCTestCase {
         XCTAssertEqual(entity.bytes, newEntity.bytes)
         
         XCTAssertEqual(entity.identifier, newEntity.identifier)
+        XCTAssertEqual(entity.packets, entity.packets)
         
         // Optionals
         XCTAssertEqual(entity.uint8Opt, newEntity.uint8Opt)
@@ -457,6 +464,8 @@ final class SebbuBitStreamTests: XCTestCase {
         XCTAssertEqual(entity.bytesOpt, newEntity.bytesOpt)
         
         XCTAssertEqual(entity.identifierOpt, newEntity.identifierOpt)
+        XCTAssertEqual(entity.packetsOpt, newEntity.packetsOpt)
+        XCTAssertEqual(entity.packetsAreOpt, newEntity.packetsAreOpt)
         
         XCTAssertEqual(entity.uint8Bits, newEntity.uint8Bits)
         XCTAssertEqual(entity.uint16Bits, newEntity.uint16Bits)

@@ -7,6 +7,7 @@
 //  Copyright © 2021 Sebastian Toivonen. All rights reserved.
 
 //TODO: Add a #BitStreamCodable macros that gives automatic conformance to BitStreamCodable and implements the init and encode methods automatically
+//TODO: Documents these property wrappers
 @propertyWrapper
 //TODO: Convert to macro #BitUnsigned(bits: Int)
 public struct BitUnsigned<T: UnsignedInteger & FixedWidthInteger> {
@@ -121,20 +122,6 @@ public extension WritableBitStream {
         let intCompressor = IntCompressor(minValue: value.min, maxValue: value.max)
         intCompressor.write(value.wrappedValue, to: &self)
     }
-
-    /// Generic BitStreamEncodable encoding
-    @inlinable
-    mutating func appendObject<T>(_ value: T) where T: BitStreamEncodable {
-        value.encode(to: &self)
-    }
-    
-    @inlinable
-    mutating func appendObject<T>(_ value: T?) where T: BitStreamEncodable {
-        append(value != nil)
-        if let value = value {
-            value.encode(to: &self)
-        }
-    }
     
     /// BitArray encoding
     @inlinable
@@ -158,10 +145,7 @@ public extension WritableBitStream {
     
     @inlinable
     mutating func append<T>(_ value: BoundedArray<T>) where T: BitStreamCodable {
-        append(UInt32(value.wrappedValue.count), numberOfBits: value.bits)
-        for element in value.wrappedValue {
-            element.encode(to: &self)
-        }
+        appendArray(value.wrappedValue, numberOfCountBits: value.bits)
     }
 }
 
@@ -198,18 +182,6 @@ public extension ReadableBitStream {
         value.wrappedValue = try intCompressor.read(from: &self)
     }
     
-    /// Generic BitStreamDecodable decoding
-    @inlinable
-    mutating func readObject<T>() throws -> T where T: BitStreamCodable {
-        return try T(from: &self)
-    }
-    
-    @inlinable
-    mutating func readObject<T>() throws -> T? where T: BitStreamCodable {
-        let hasValue = try read() as Bool
-        return hasValue ? try readObject() as T : nil
-    }
-    
     /// Array with chosen bit value for count decoding
     @inlinable
     @_specialize(exported: true, kind: full, where T == UInt8)
@@ -228,13 +200,9 @@ public extension ReadableBitStream {
     
     /// Array with chosen bit value for count count decoding, generic
     @inlinable
+    @inline(__always)
     mutating func read<T>(_ value: inout BoundedArray<T>) throws where T: BitStreamCodable {
-        let count = Int(try self.read(numberOfBits: value.bits) as UInt32)
-        value.wrappedValue.removeAll(keepingCapacity: true)
-        value.wrappedValue.reserveCapacity(count)
-        for _ in 0..<count {
-            value.wrappedValue.append(try readObject())
-        }
+        value.wrappedValue = try readArray(numberOfCountBits: value.bits)
     }
 }
 

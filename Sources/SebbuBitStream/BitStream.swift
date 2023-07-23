@@ -5,36 +5,43 @@
 //
 //  Copyright © 2021 Sebastian Toivonen. All rights reserved.
 
+/// Possible error that can occur when using `ReadableBitStream`s.
 public enum BitStreamError: Error {
     case tooShort
     case encodingError
     case incorrectChecksum
 }
 
-/// Gets the number of bits required to encode an enum case.
-public extension RawRepresentable where Self: CaseIterable, RawValue == UInt32 {
-    @inlinable
-    static var bits: Int {
-        let casesCount = UInt32(allCases.count)
-        return UInt32.bitWidth - casesCount.leadingZeroBitCount
-    }
-}
-
-//MARK: WritableBitStream
 //TODO: non-copyable?
-public struct WritableBitStream {
+/// A writable bit stream used to encode objects into a packed stream of bytes.
+///
+/// Basic usage
+/// ```
+/// var stream = WritableBitStream()
+/// stream.append(-29)
+/// stream.append(883, numberOfBits: 7)
+/// stream.append(100.0)
+/// stream.append("Some string")
+/// ```
+public struct WritableBitStream: CustomStringConvertible {
     @usableFromInline
     var bytes: [UInt8] = []
     
     @usableFromInline
     var endBitIndex = 0
 
+    /// Initialize a new `WritableBitStream`.
+    ///
+    /// - Parameter size: The amount of bytes to reserve for the `WritableBitStream`. By correctly specifying the size can reduce the amount of allocations during encoding.
     public init(size: Int = 0) {
         precondition(size >= 0)
         // 4: endBitIndex + size: data + 4: possible crc
         reset(reservingCapacity: 4 + size + 4)
     }
 
+    /// Reset the stream into a fresh state.
+    ///
+    /// - Parameter reservingCapacity: Give the size that the underlying buffer will reserve.
     @inlinable
     public mutating func reset(reservingCapacity: Int = 0) {
         bytes.removeAll(keepingCapacity: reservingCapacity == 0)
@@ -56,21 +63,25 @@ public struct WritableBitStream {
         return result
     }
 
-    //MARK: - Append Bool
+    /// Append a boolean value.
+    ///
+    /// - Parameter value: The boolean value to be encoded.
+    ///
+    /// The `Bool` is encoded as one bit.
+    ///
+    /// - Complexity: O(1)
     @inlinable
     public mutating func append(_ value: Bool) {
         appendBit(UInt8(value ? 1 : 0))
     }
     
-    @inlinable
-    public mutating func append(_ value: Bool?) {
-        append(value != nil)
-        if let value = value {
-            append(value)
-        }
-    }
-    
-    //MARK: - Append FixedWidthInteger
+    /// Append a `FixedWidthInteger`.
+    ///
+    /// - Parameter value: The integer value to be encoded.
+    ///
+    /// The value if encoded using the corresponding amount of bits as the integer bit width.
+    ///
+    /// - Complexity: O(1)
     @inlinable
     @_specialize(exported: true, kind: full, where T == UInt8)
     @_specialize(exported: true, kind: full, where T == UInt16)
@@ -90,24 +101,13 @@ public struct WritableBitStream {
         }
     }
     
-    @inlinable
-    @_specialize(exported: true, kind: full, where T == UInt8)
-    @_specialize(exported: true, kind: full, where T == UInt16)
-    @_specialize(exported: true, kind: full, where T == UInt32)
-    @_specialize(exported: true, kind: full, where T == UInt64)
-    @_specialize(exported: true, kind: full, where T == UInt)
-    @_specialize(exported: true, kind: full, where T == Int8)
-    @_specialize(exported: true, kind: full, where T == Int16)
-    @_specialize(exported: true, kind: full, where T == Int32)
-    @_specialize(exported: true, kind: full, where T == Int64)
-    @_specialize(exported: true, kind: full, where T == Int)
-    public mutating func append<T>(_ value: T?) where T: FixedWidthInteger {
-        append(value != nil)
-        if let value = value {
-            append(value)
-        }
-    }
     
+    /// Append an `UnsignedInteger` with a custom number of bits.
+    ///
+    /// - Parameter value: The unsigned integer value to be encoded.
+    /// - Parameter numberOfBits: The number of bits to be used to encode the value.
+    ///
+    /// - Complexity: O(1)
     @inlinable
     @_specialize(exported: true, kind: full, where T == UInt8)
     @_specialize(exported: true, kind: full, where T == UInt16)
@@ -123,73 +123,52 @@ public struct WritableBitStream {
         }
     }
     
-    @inlinable
-    @_specialize(exported: true, kind: full, where T == UInt8)
-    @_specialize(exported: true, kind: full, where T == UInt16)
-    @_specialize(exported: true, kind: full, where T == UInt32)
-    @_specialize(exported: true, kind: full, where T == UInt64)
-    @_specialize(exported: true, kind: full, where T == UInt)
-    public mutating func append<T>(_ value: T?, numberOfBits: Int) where T: UnsignedInteger {
-        append(value != nil)
-        if let value = value {
-            append(value, numberOfBits: numberOfBits)
-        }
-    }
-    
-    
-    // Appends an integer-based enum using the minimal number of bits for its set of possible cases.
+    /// Append an unsigned integer based enum using the minimal number of bits for its set of possible cases.
+    ///
+    /// - Parameter value: The enum value to be encoded.
+    ///
+    /// - Complexity: O(1)
     @inlinable
     public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
         append(value.rawValue, numberOfBits: T.bits)
     }
-    
-    @inlinable
-    public mutating func append<T>(_ value: T?) where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
-        append(value != nil)
-        if let value = value {
-            append(value)
-        }
-    }
 
+    /// Append a float value.
+    ///
+    /// - Parameter value: The float value to be encoded.
+    ///
+    /// - Complexity: O(1)
     @inlinable
     public mutating func append(_ value: Float) {
         append(value.bitPattern)
     }
     
-    @inlinable
-    public mutating func append(_ value: Float?) {
-        append(value != nil)
-        if let value = value {
-            append(value)
-        }
-    }
-    
+    /// Append a double value.
+    ///
+    /// - Parameter value: The double value to be encoded.
+    ///
+    /// - Complexity: O(1)
     @inlinable
     public mutating func append(_ value: Double) {
         append(value.bitPattern)
     }
     
-    @inlinable
-    public mutating func append(_ value: Double?) {
-        append(value != nil)
-        if let value = value {
-            append(value)
-        }
-    }
-    
+    /// Append a string using UTF8 encoding.
+    ///
+    /// - Parameter value: A UTF8 compatible string to be encoded
+    ///
+    ///
+    /// - Complexity: O(*n*), where *n* is the length of the string
     @inlinable
     public mutating func append(_ value: String) {
         append([UInt8](value.utf8))
     }
     
-    @inlinable
-    public mutating func append(_ value: String?) {
-        append(value != nil)
-        if let value = value {
-            append(value)
-        }
-    }
-    
+    /// Append bytes.
+    ///
+    /// - Parameter value: Bytes to be encoded.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of bytes in the bytes to be encoded.
     @inlinable
     public mutating func append(_ value: [UInt8]) {
         align()
@@ -197,14 +176,6 @@ public struct WritableBitStream {
         append(length)
         bytes.append(contentsOf: value)
         endBitIndex += Int(length * 8)
-    }
-    
-    @inlinable
-    public mutating func append(_ value: [UInt8]?) {
-        append(value != nil)
-        if let value = value {
-            append(value)
-        }
     }
     
     @inlinable
@@ -226,7 +197,11 @@ public struct WritableBitStream {
         endBitIndex = bytes.count * 8
     }
 
-    // MARK: - Pack/Unpack Data
+    /// Pack the buffer into transferable form.
+    ///
+    /// - Parameters withCrc: Boolean value to indicate if a CRC checksum is appended to the bytes
+    ///
+    /// - Returns: The packed bytes that can be transferred and decoded.
     @inlinable
     @_optimize(speed)
     public mutating func packBytes(withCrc: Bool = false) -> [UInt8] {
@@ -247,9 +222,20 @@ public struct WritableBitStream {
     }
 }
 
-//MARK: ReadableBitStream
 //TODO: non-copyable?
-public struct ReadableBitStream {
+/// A readable bit stream used to decode packed bytes by a writable bit stream.
+///
+/// Basic usage
+/// ```
+/// ...
+/// let buffer = writeStream.packBytes()
+/// var stream = ReadableBitStream(bytes: buffer)
+/// let age = try stream.read() as Int
+/// let name: String = try stream.read()
+/// let length = try stream.read() as Float
+/// ```
+/// The reading of values must correspond to the order at which the values were encoded into the stream.
+public struct ReadableBitStream: CustomStringConvertible {
     @usableFromInline
     let bytes: [UInt8]
     
@@ -262,6 +248,9 @@ public struct ReadableBitStream {
     @usableFromInline
     var isAtEnd: Bool { return currentBit == endBitIndex }
     
+    /// Initialize a new `ReadableBitStream` from given bytes.
+    ///
+    /// - Parameter bytes: Bytes that are decoded.
     public init(bytes data: [UInt8]) {
         precondition(data.count >= 4, "Failed to initialize bit stream, the provided count was \(data.count)")
         // Since arrays are copy-on-write, this will not copy 
@@ -275,6 +264,10 @@ public struct ReadableBitStream {
         currentBit = 32
     }
 
+    /// Initialize a new `ReadableBitStream` from given bytes.
+    ///
+    /// - Parameter bytes: Bytes that are decoded.
+    /// - Parameter crcValidated: Boolean value to indicate wheter to validate an appended crc.
     public init(bytes data: [UInt8], crcValidated: Bool) throws {
         precondition(data.count >= 8, "Failed to initialize bit stream, the provided count was \(data.count)")
         if _fastPath(crcValidated) {
@@ -288,8 +281,18 @@ public struct ReadableBitStream {
         self = ReadableBitStream(bytes: data)
     }
     
-    // MARK: - Read
+    public var description: String {
+        var result = "ReadableBitStream \(endBitIndex): \n\t"
+        for index in currentBit / 8 ..< bytes.count {
+            result.append((String(bytes[index], radix: 2) + " "))
+        }
+        return result
+    }
     
+    /// Read a boolean value.
+    ///
+    /// - Returns: The decoded boolean value.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
     public mutating func read() throws -> Bool {
         if currentBit >= endBitIndex {
@@ -298,12 +301,10 @@ public struct ReadableBitStream {
         return (readBit() > 0) ? true : false
     }
     
-    @inlinable
-    public mutating func read() throws -> Bool? {
-        let hasValue = try read() as Bool
-        return hasValue ? try read() as Bool : nil
-    }
-    
+    /// Read a float value.
+    ///
+    /// - Returns: The decoded float value.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
     public mutating func read() throws -> Float {
         var result: Float = 0.0
@@ -315,12 +316,10 @@ public struct ReadableBitStream {
         return result
     }
     
-    @inlinable
-    public mutating func read() throws -> Float? {
-        let hasValue = try read() as Bool
-        return hasValue ? try read() as Float : nil
-    }
-    
+    /// Read a double value.
+    ///
+    /// - Returns: The decoded double value.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
     public mutating func read() throws -> Double {
         var result: Double = 0.0
@@ -332,12 +331,10 @@ public struct ReadableBitStream {
         return result
     }
     
-    @inlinable
-    public mutating func read() throws -> Double? {
-        let hasValue = try read() as Bool
-        return hasValue ? try read() as Double : nil
-    }
-    
+    /// Read a `FixedWidthInteger` value.
+    ///
+    /// - Returns: The decoded fixed width integer.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
     @_specialize(exported: true, kind: full, where T == UInt8)
     @_specialize(exported: true, kind: full, where T == UInt16)
@@ -360,22 +357,10 @@ public struct ReadableBitStream {
         return bitPattern
     }
     
-    @inlinable
-    @_specialize(exported: true, kind: full, where T == UInt8)
-    @_specialize(exported: true, kind: full, where T == UInt16)
-    @_specialize(exported: true, kind: full, where T == UInt32)
-    @_specialize(exported: true, kind: full, where T == UInt64)
-    @_specialize(exported: true, kind: full, where T == UInt)
-    @_specialize(exported: true, kind: full, where T == Int8)
-    @_specialize(exported: true, kind: full, where T == Int16)
-    @_specialize(exported: true, kind: full, where T == Int32)
-    @_specialize(exported: true, kind: full, where T == Int64)
-    @_specialize(exported: true, kind: full, where T == Int)
-    public mutating func read<T>() throws -> T? where T: FixedWidthInteger {
-        let hasValue = try read() as Bool
-        return hasValue ? try read() as T : nil
-    }
-    
+    /// Read an `UnsignedInteger` value.
+    ///
+    /// - Returns: The decoded unsigned integer.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
     @_specialize(exported: true, kind: full, where T == UInt8)
     @_specialize(exported: true, kind: full, where T == UInt16)
@@ -393,17 +378,10 @@ public struct ReadableBitStream {
         return bitPattern
     }
     
-    @inlinable
-    @_specialize(exported: true, kind: full, where T == UInt8)
-    @_specialize(exported: true, kind: full, where T == UInt16)
-    @_specialize(exported: true, kind: full, where T == UInt32)
-    @_specialize(exported: true, kind: full, where T == UInt64)
-    @_specialize(exported: true, kind: full, where T == UInt)
-    public mutating func read<T>(numberOfBits: Int) throws -> T? where T: UnsignedInteger {
-        let hasValue = try read() as Bool
-        return hasValue ? try read(numberOfBits: numberOfBits) as T : nil
-    }
-    
+    /// Read a buffer of bytes.
+    ///
+    /// - Returns: The decoded buffer of bytes.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
     public mutating func read() throws -> [UInt8] {
         align()
@@ -420,12 +398,11 @@ public struct ReadableBitStream {
         return result
     }
     
-    @inlinable
-    public mutating func read() throws -> [UInt8]? {
-        let hasValue = try read() as Bool
-        return hasValue ? try read() as [UInt8] : nil
-    }
-    
+    /// Read an enum value
+    ///
+    /// - Returns: The decoded enum value.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
+    /// - Throws: A `BitStreamError.encoding` if the enum couldn't be constructed from the encoded value.
     @inlinable
     public mutating func read<T>() throws -> T where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
         let rawValue = try read(numberOfBits: T.bits) as UInt32
@@ -434,23 +411,15 @@ public struct ReadableBitStream {
         }
         return result
     }
-    
-    @inlinable
-    public mutating func read<T>() throws -> T? where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
-        let hasValue = try read() as Bool
-        return hasValue ? try read() as T : nil
-    }
 
+    /// Read a UTF8 string.
+    ///
+    /// - Returns: The UTF8 encoded string
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
     public mutating func read() throws -> String {
         let bytes: [UInt8] = try read()
         return String(decoding: bytes, as: Unicode.UTF8.self)
-    }
-    
-    @inlinable
-    public mutating func read() throws -> String? {
-        let hasValue = try read() as Bool
-        return hasValue ? try read() as String : nil
     }
     
     @inlinable
@@ -467,61 +436,5 @@ public struct ReadableBitStream {
         let byteIndex = currentBit >> 3 //let byteIndex = currentBit / 8
         currentBit += 1
         return (bytes[byteIndex] >> bitShift) & 1
-    }
-}
-
-public extension FloatCompressor {
-    @inlinable
-    func write(_ value: SIMD2<Float>, to stream: inout WritableBitStream) {
-        write(value.x, to: &stream)
-        write(value.y, to: &stream)
-    }
-    
-    @inlinable
-    func write(_ value: SIMD3<Float>, to stream: inout WritableBitStream) {
-        write(value.x, to: &stream)
-        write(value.y, to: &stream)
-        write(value.z, to: &stream)
-    }
-    
-    @inlinable
-    func read(from stream: inout ReadableBitStream) throws -> SIMD2<Float> {
-        return SIMD2<Float>(x: try read(from: &stream), y: try read(from: &stream))
-    }
-    
-    @inlinable
-    func read(from stream: inout ReadableBitStream) throws -> SIMD3<Float> {
-        return SIMD3<Float>(
-            x: try read(from: &stream),
-            y: try read(from: &stream),
-            z: try read(from: &stream))
-    }
-}
-
-public extension DoubleCompressor {
-    @inlinable
-    func write(_ value: SIMD2<Double>, to stream: inout WritableBitStream) {
-        write(value.x, to: &stream)
-        write(value.y, to: &stream)
-    }
-    
-    @inlinable
-    func write(_ value: SIMD3<Double>, to stream: inout WritableBitStream) {
-        write(value.x, to: &stream)
-        write(value.y, to: &stream)
-        write(value.z, to: &stream)
-    }
-    
-    @inlinable
-    func read(from stream: inout ReadableBitStream) throws -> SIMD2<Double> {
-        return SIMD2<Double>(x: try read(from: &stream), y: try read(from: &stream))
-    }
-    
-    @inlinable
-    func read(from stream: inout ReadableBitStream) throws -> SIMD3<Double> {
-        return SIMD3<Double>(
-            x: try read(from: &stream),
-            y: try read(from: &stream),
-            z: try read(from: &stream))
     }
 }

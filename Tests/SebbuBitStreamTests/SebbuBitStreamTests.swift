@@ -78,13 +78,13 @@ final class SebbuBitStreamTests: XCTestCase {
         var writeStream = WritableBitStream()
         entity.encode(to: &writeStream)
         var readStream = ReadableBitStream(bytes: writeStream.packBytes())
-        var newEntity: Entity = try readStream.readObject()
+        var newEntity: Entity = try readStream.read()
         try assert(entity: entity, newEntity: newEntity)
         
         writeStream = WritableBitStream()
         entity.encode(to: &writeStream)
         readStream = try ReadableBitStream(bytes: writeStream.packBytes(withCrc: true), crcValidated: true)
-        newEntity = try readStream.readObject()
+        newEntity = try readStream.read()
         try assert(entity: entity, newEntity: newEntity)
     }
     
@@ -330,8 +330,8 @@ final class SebbuBitStreamTests: XCTestCase {
             float = try bitStream.read()
             double = try bitStream.read()
             bytes = try bitStream.read()
-            identifier = try bitStream.readObject()
-            packets = try bitStream.readArray()
+            identifier = try bitStream.read()
+            packets = try bitStream.read()
             
             uint8Opt = try bitStream.read()
             uint16Opt = try bitStream.read()
@@ -349,9 +349,9 @@ final class SebbuBitStreamTests: XCTestCase {
             floatOpt = try bitStream.read()
             doubleOpt = try bitStream.read()
             bytesOpt = try bitStream.read()
-            identifierOpt = try bitStream.readObject()
-            packetsOpt = try bitStream.readObject()
-            packetsAreOpt = try bitStream.readObject()
+            identifierOpt = try bitStream.read()
+            packetsOpt = try bitStream.read()
+            packetsAreOpt = try bitStream.read()
             
             try bitStream.read(&_count)
             try bitStream.read(&_uint8Bits)
@@ -383,8 +383,8 @@ final class SebbuBitStreamTests: XCTestCase {
             bitStream.append(float)
             bitStream.append(double)
             bitStream.append(bytes)
-            bitStream.appendObject(identifier)
-            bitStream.appendArray(packets)
+            bitStream.append(identifier)
+            bitStream.append(packets)
             
             bitStream.append(uint8Opt)
             bitStream.append(uint16Opt)
@@ -402,9 +402,9 @@ final class SebbuBitStreamTests: XCTestCase {
             bitStream.append(floatOpt)
             bitStream.append(doubleOpt)
             bitStream.append(bytesOpt)
-            bitStream.appendObject(identifierOpt)
-            bitStream.appendObject(packetsOpt)
-            bitStream.appendArray(packetsAreOpt)
+            bitStream.append(identifierOpt)
+            bitStream.append(packetsOpt)
+            bitStream.append(packetsAreOpt)
             
             bitStream.append(_count)
             bitStream.append(_uint8Bits)

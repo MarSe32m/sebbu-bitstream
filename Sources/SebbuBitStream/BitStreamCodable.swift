@@ -27,7 +27,18 @@ public extension WritableBitStream {
     /// - Complexity: O(1)
     @inlinable
     @inline(__always)
-    mutating func appendObject<T>(_ value: T) where T: BitStreamEncodable {
+    mutating func append<T>(_ value: T) where T: BitStreamEncodable {
+        value.encode(to: &self)
+    }
+    
+    /// Encode an optional `BitStreamEncodable` object.
+    ///
+    /// - Parameter value: The `BitStreamEncodable` object to encode.
+    ///
+    /// - Complexity: O(1)
+    @inlinable
+    @inline(__always)
+    mutating func append<T>(_ value: T?) where T: BitStreamEncodable {
         value.encode(to: &self)
     }
     
@@ -40,12 +51,50 @@ public extension WritableBitStream {
     /// - Complexity: O(n)
     @inlinable
     @inline(__always)
-    mutating func appendArray<T>(_ array: [T]) where T: BitStreamEncodable {
+    mutating func append<T>(_ array: [T]) where T: BitStreamEncodable {
         precondition(array.count <= 1 << 29, "BitStreams support only arrays with less than 2^29 objects in it")
         // We assume that the array doesn't have more than 500 million elements
         append(UInt32(array.count), numberOfBits: 29)
         for element in array {
-            appendObject(element)
+            append(element)
+        }
+    }
+    
+    /// Encode an array of `BitStreamEncodable` objects
+    ///
+    /// - Parameter array: The array of `BitStreamEncodable` objects to encode.
+    ///
+    /// - Note: This encodes the length of the array with 29 bits. Thus the array must contain less than 2^29 objects.
+    ///
+    /// - Complexity: O(n)
+    @inlinable
+    @inline(__always)
+    mutating func append<T>(_ array: [T]?) where T: BitStreamEncodable {
+        append(array != nil)
+        guard let array = array else { return }
+        precondition(array.count <= 1 << 29, "BitStreams support only arrays with less than 2^29 objects in it")
+        // We assume that the array doesn't have more than 500 million elements
+        append(UInt32(array.count), numberOfBits: 29)
+        for element in array {
+            append(element)
+        }
+    }
+    
+    /// Encode an array of optional `BitStreamEncodable` objects
+    ///
+    /// - Parameter array: The array of `BitStreamEncodable` objects to encode.
+    ///
+    /// - Note: This encodes the length of the array with 29 bits. Thus the array must contain less than 2^29 objects.
+    ///
+    /// - Complexity: O(n)
+    @inlinable
+    @inline(__always)
+    mutating func append<T>(_ array: [T?]) where T: BitStreamEncodable {
+        precondition(array.count <= 1 << 29, "BitStreams support only arrays with less than 2^29 objects in it")
+        // We assume that the array doesn't have more than 500 million elements
+        append(UInt32(array.count), numberOfBits: 29)
+        for element in array {
+            append(element)
         }
     }
     
@@ -59,13 +108,33 @@ public extension WritableBitStream {
     /// - Complexity: O(n)
     @inlinable
     @inline(__always)
-    mutating func appendArray<T>(_ array: [T], numberOfCountBits: Int) where T: BitStreamEncodable {
+    mutating func append<T>(_ array: [T], numberOfCountBits: Int) where T: BitStreamEncodable {
         precondition(numberOfCountBits > 0, "Number of bits used for encoding the length of the array must be more than zero")
         precondition(numberOfCountBits <= 32, "BitStreams support only arrays with 32 bits of count bits")
         // We assume that the array doesn't have more than 500 million elements
         append(UInt32(array.count), numberOfBits: numberOfCountBits)
         for element in array {
-            appendObject(element)
+            append(element)
+        }
+    }
+    
+    /// Encode an array of optional `BitStreamEncodable` objects with a specified bit count for encoding the array length
+    ///
+    /// - Parameter array: The array of `BitStreamEncodable` objects to encode.
+    /// - Parameter numberOfCountBits: The number of bits used for encoding the length of the array.
+    ///
+    /// - Note: The `numberOfCountBits` parameter must be more than zero and less than 29.
+    ///
+    /// - Complexity: O(n)
+    @inlinable
+    @inline(__always)
+    mutating func append<T>(_ array: [T?], numberOfCountBits: Int) where T: BitStreamEncodable {
+        precondition(numberOfCountBits > 0, "Number of bits used for encoding the length of the array must be more than zero")
+        precondition(numberOfCountBits <= 32, "BitStreams support only arrays with 32 bits of count bits")
+        // We assume that the array doesn't have more than 500 million elements
+        append(UInt32(array.count), numberOfBits: numberOfCountBits)
+        for element in array {
+            append(element)
         }
     }
 }
@@ -76,12 +145,12 @@ public extension ReadableBitStream {
     /// To specify the type that is read, either use type inference or specify the type using casting
     ///  ```
     /// var stream = ReadableBitStream(bytes: bytes)
-    /// let packet: YourPacket = try stream.readObject()
-    /// let object = try stream.readObject() as YourObjectType
+    /// let packet: YourPacket = try stream.read()
+    /// let object = try stream.read() as YourObjectType
     ///  ```
     @inlinable
     @inline(__always)
-    mutating func readObject<T>() throws -> T where T: BitStreamCodable {
+    mutating func read<T>() throws -> T where T: BitStreamDecodable {
         return try T(from: &self)
     }
     
@@ -90,18 +159,40 @@ public extension ReadableBitStream {
     /// To specify the type that is read, either use type inference or specify the type using casting
     ///  ```
     /// var stream = ReadableBitStream(bytes: bytes)
-    /// let array: [Packet] = try stream.readArray()
-    /// let otherArray = try stream.readArray() as [Message]
+    /// let array: [Packet] = try stream.read()
+    /// let otherArray = try stream.read() as [Message]
     ///  ```
     @inlinable
     @inline(__always)
-    mutating func readArray<T>() throws -> [T] where T: BitStreamCodable {
+    mutating func read<T>() throws -> [T] where T: BitStreamDecodable {
         let count = Int(try read(numberOfBits: 29) as UInt32)
         var array: [T] = []
         if count == 0 { return array }
         array.reserveCapacity(count)
         for _ in 0..<count {
-            array.append(try readObject())
+            array.append(try read())
+        }
+        return array
+    }
+    
+    /// Decode an array of `BitStreamCodable` objects
+    ///
+    /// To specify the type that is read, either use type inference or specify the type using casting
+    ///  ```
+    /// var stream = ReadableBitStream(bytes: bytes)
+    /// let array: [Packet] = try stream.read()
+    /// let otherArray = try stream.read() as [Message]
+    ///  ```
+    @inlinable
+    @inline(__always)
+    mutating func read<T>() throws -> [T]? where T: BitStreamDecodable {
+        guard try read() as Bool else { return nil }
+        let count = Int(try read(numberOfBits: 29) as UInt32)
+        var array: [T] = []
+        if count == 0 { return array }
+        array.reserveCapacity(count)
+        for _ in 0..<count {
+            array.append(try read())
         }
         return array
     }
@@ -111,19 +202,19 @@ public extension ReadableBitStream {
     /// To specify the type that is read, either use type inference or specify the type using casting
     ///  ```
     /// var stream = ReadableBitStream(bytes: bytes)
-    /// let array: [Packet] = try stream.readArray()
-    /// let otherArray = try stream.readArray() as [Message]
+    /// let array: [Packet] = try stream.read()
+    /// let otherArray = try stream.read() as [Message]
     ///  ```
     ///
     ///  - Parameter numberOfCountBits: Number of bits used to decode the length of the array. This must match the number of bits used to encode the length.
     @inlinable
     @inline(__always)
-    mutating func readArray<T>(numberOfCountBits: Int) throws -> [T] where T: BitStreamCodable {
+    mutating func read<T>(numberOfCountBits: Int) throws -> [T] where T: BitStreamDecodable {
         let count = Int(try read(numberOfBits: numberOfCountBits) as UInt32)
         var array: [T] = []
         array.reserveCapacity(count)
         for _ in 0..<count {
-            array.append(try readObject())
+            array.append(try read())
         }
         return array
     }
@@ -280,16 +371,5 @@ extension String: BitStreamCodable {
 
     public func encode(to bitStream: inout WritableBitStream) {
         fatalError("String conformance to BitStreamEncodable is unavailable")
-    }
-}
-
-extension Array: BitStreamCodable where Element: BitStreamCodable {
-    public init(from bitStream: inout ReadableBitStream) throws {
-        self = try bitStream.readArray()
-    }
-    
-    @inlinable
-    public func encode(to bitStream: inout WritableBitStream) {
-        bitStream.appendArray(self)
     }
 }

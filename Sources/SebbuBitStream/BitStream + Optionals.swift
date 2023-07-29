@@ -183,18 +183,20 @@ public extension ReadableBitStream {
     }
 }
 
-extension Optional: BitStreamCodable where Wrapped: BitStreamCodable {
+extension Optional: BitStreamDecodable where Wrapped: BitStreamDecodable {
     public init(from bitStream: inout ReadableBitStream) throws {
         let hasValue = try bitStream.read() as Bool
-        self = hasValue ? .some(try bitStream.readObject() as Wrapped) : .none
+        self = hasValue ? .some(try bitStream.read() as Wrapped) : .none
     }
-    
+}
+
+extension Optional: BitStreamEncodable where Wrapped: BitStreamEncodable {
     @inline(__always)
     public func encode(to bitStream: inout WritableBitStream) {
         switch self {
         case .some(let wrapped):
             bitStream.append(true)
-            bitStream.appendObject(wrapped)
+            bitStream.append(wrapped)
         case .none:
             bitStream.append(false)
         }

@@ -96,7 +96,6 @@ public struct DoubleCompressor {
     }
 }
 
-
 /// An integer compressor to reduce the number of bits used to encode signed integer.
 public struct IntCompressor {
     /// The minimum value that the compressed integers are assumed to have.
@@ -157,6 +156,57 @@ public struct IntCompressor {
         } else {
             return Int(storedValue - absoluteMinValue) + 1
         }
+    }
+}
+
+/// An integer compressor to reduce the number of bits used to encode signed integer.
+public struct UIntCompressor {
+    /// The minimum value that the compressed integers are assumed to have.
+    public let minValue: UInt
+    
+    /// The maximum value that the compressed integers are assumed to have.
+    public let maxValue: UInt
+
+    @usableFromInline
+    internal let shiftedMaxValue: UInt
+    
+    /// The number of bits used to encode the compressed integer values.
+    /// This is calculated based on the minimum and maximum values.
+    public let bits: Int
+    
+    /// Initialize a new integer compressor.
+    /// - Parameter minValue: The minimum value that the compressed integers are assumed to have.
+    /// - Parameter maxValue: The maximum value that the compressed integers are assumed to have.
+    public init(minValue: UInt, maxValue: UInt) {
+        assert(minValue < maxValue)
+        self.minValue = minValue
+        self.maxValue = maxValue
+        let shiftedMaxValue = maxValue - minValue
+        self.shiftedMaxValue = shiftedMaxValue
+        self.bits = UInt.bitWidth - shiftedMaxValue.leadingZeroBitCount
+    }
+    
+    /// Write a compressed integer into a stream.
+    ///
+    /// - Parameter value: The integer to be compressed and written.
+    /// - Parameter to: The stream that the integer is written to.
+    @inlinable
+    public func write(_ value: UInt, to bitStream: inout WritableBitStream) {
+        assert(value >= minValue)
+        assert(value <= maxValue)
+        let storedValue = value - minValue
+        bitStream.append(storedValue, numberOfBits: bits)
+    }
+    
+    /// Read and decompress an integer value from a stream.
+    ///
+    /// - Parameter from: The stream that the value is read from.
+    ///
+    /// - Returns: The decompressed integer value.
+    @inlinable
+    public func read(from bitStream: inout ReadableBitStream) throws -> UInt {
+        let storedValue: UInt = try bitStream.read(numberOfBits: bits)
+        return storedValue + minValue
     }
 }
 

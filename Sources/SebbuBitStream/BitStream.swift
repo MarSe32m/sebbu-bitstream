@@ -143,6 +143,19 @@ public struct WritableBitStream: CustomStringConvertible {
         append(value.bitPattern)
     }
     
+    /// Append an array of floats.
+    ///
+    /// - Parameter value: The float value to be encoded.
+    ///
+    /// - Complexity: O(n)
+    @inlinable
+    public mutating func append(_ value: [Float]) {
+        append(UInt32(value.count), numberOfBits: 29)
+        for element in value {
+            append(element)
+        }
+    }
+    
     /// Append a double value.
     ///
     /// - Parameter value: The double value to be encoded.
@@ -151,6 +164,19 @@ public struct WritableBitStream: CustomStringConvertible {
     @inlinable
     public mutating func append(_ value: Double) {
         append(value.bitPattern)
+    }
+    
+    /// Append an array of doubles.
+    ///
+    /// - Parameter value: The float value to be encoded.
+    ///
+    /// - Complexity: O(n)
+    @inlinable
+    public mutating func append(_ value: [Double]) {
+        append(UInt32(value.count), numberOfBits: 29)
+        for element in value {
+            append(element)
+        }
     }
     
     /// Append a string using UTF8 encoding.
@@ -316,6 +342,21 @@ public struct ReadableBitStream: CustomStringConvertible {
         return result
     }
     
+    /// Read an array of floats.
+    ///
+    /// - Returns: The decoded float value.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
+    @inlinable
+    public mutating func read() throws -> [Float] {
+        let count = try Int(read(numberOfBits: 29) as UInt32)
+        if count == 0 { return [] }
+        var result: [Float] = []
+        for _ in 0..<count {
+            try result.append(read())
+        }
+        return result
+    }
+    
     /// Read a double value.
     ///
     /// - Returns: The decoded double value.
@@ -327,6 +368,21 @@ public struct ReadableBitStream: CustomStringConvertible {
             result = try Double(bitPattern: read())
         } catch let error {
             throw error
+        }
+        return result
+    }
+    
+    /// Read an array of doubles.
+    ///
+    /// - Returns: The decoded doubles.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
+    @inlinable
+    public mutating func read() throws -> [Double] {
+        let count = try Int(read(numberOfBits: 29) as UInt32)
+        if count == 0 { return [] }
+        var result: [Double] = []
+        for _ in 0..<count {
+            try result.append(read())
         }
         return result
     }

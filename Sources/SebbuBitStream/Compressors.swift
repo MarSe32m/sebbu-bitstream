@@ -37,6 +37,19 @@ public struct FloatCompressor {
         stream.append(bitPattern, numberOfBits: bits)
     }
 
+    /// Write an array of compressed integers into a stream.
+    ///
+    /// - Parameter value: The integer to be compressed and written.
+    /// - Parameter to: The stream that the integer is written to.
+    @inlinable
+    public func write(_ value: [Float], maxCount: Int, to bitStream: inout WritableBitStream) {
+        let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        bitStream.append(UInt32(value.count), numberOfBits: bits)
+        for element in value {
+            write(element, to: &bitStream)
+        }
+    }
+    
     /// Read and decompress a float value from a stream.
     ///
     /// - Parameter from: The stream that the value is read from.
@@ -48,6 +61,23 @@ public struct FloatCompressor {
 
         let ratio = Float(Double(bitPattern) / maxBitValue)
         return  ratio * (maxValue - minValue) + minValue
+    }
+    
+    /// Read and decompress an array of integer values from a stream.
+    ///
+    /// - Parameter from: The stream that the value is read from.
+    ///
+    /// - Returns: The decompressed integer value.
+    @inlinable
+    public func read(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [Float] {
+        let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = try Int(bitStream.read(numberOfBits: bits) as UInt32)
+        var result: [Float] = []
+        if count == 0 { return result }
+        for _ in 0..<count {
+            try result.append(read(from: &bitStream))
+        }
+        return result
     }
 }
 
@@ -82,6 +112,19 @@ public struct DoubleCompressor {
         stream.append(bitPattern, numberOfBits: bits)
     }
     
+    /// Write an array of compressed integers into a stream.
+    ///
+    /// - Parameter value: The integer to be compressed and written.
+    /// - Parameter to: The stream that the integer is written to.
+    @inlinable
+    public func write(_ value: [Double], maxCount: Int, to bitStream: inout WritableBitStream) {
+        let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        bitStream.append(UInt32(value.count), numberOfBits: bits)
+        for element in value {
+            write(element, to: &bitStream)
+        }
+    }
+    
     /// Read and decompress a double value from a stream.
     ///
     /// - Parameter from: The stream that the value is read from.
@@ -93,6 +136,23 @@ public struct DoubleCompressor {
 
         let ratio = Double(bitPattern) / maxBitValue
         return  ratio * (maxValue - minValue) + minValue
+    }
+    
+    /// Read and decompress an array of integer values from a stream.
+    ///
+    /// - Parameter from: The stream that the value is read from.
+    ///
+    /// - Returns: The decompressed integer value.
+    @inlinable
+    public func read(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [Double] {
+        let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = try Int(bitStream.read(numberOfBits: bits) as UInt32)
+        var result: [Double] = []
+        if count == 0 { return result }
+        for _ in 0..<count {
+            try result.append(read(from: &bitStream))
+        }
+        return result
     }
 }
 
@@ -130,10 +190,10 @@ public struct IntCompressor {
     /// - Parameter value: The integer to be compressed and written.
     /// - Parameter to: The stream that the integer is written to.
     @inlinable
-    public func write(_ value: Int, to bitStream: inout WritableBitStream) {
+    public func write<T>(_ value: T, to bitStream: inout WritableBitStream) where T: FixedWidthInteger & SignedInteger {
         assert(value >= minValue)
         assert(value <= maxValue)
-        let (partialValue, overflow) = value.subtractingReportingOverflow(minValue)
+        let (partialValue, overflow) = Int(value).subtractingReportingOverflow(minValue)
         let storedValue: UInt
         if overflow {
             storedValue = Int.max.magnitude + Int.min.distance(to: partialValue).magnitude
@@ -143,19 +203,49 @@ public struct IntCompressor {
         bitStream.append(storedValue, numberOfBits: bits)
     }
     
+    /// Write an array of compressed integers into a stream.
+    ///
+    /// - Parameter value: The integer to be compressed and written.
+    /// - Parameter to: The stream that the integer is written to.
+    @inlinable
+    public func write<T>(_ value: [T], maxCount: Int, to bitStream: inout WritableBitStream) where T: FixedWidthInteger & SignedInteger {
+        let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        bitStream.append(UInt32(value.count), numberOfBits: bits)
+        for element in value {
+            write(element, to: &bitStream)
+        }
+    }
+    
     /// Read and decompress an integer value from a stream.
     ///
     /// - Parameter from: The stream that the value is read from.
     ///
     /// - Returns: The decompressed integer value.
     @inlinable
-    public func read(from bitStream: inout ReadableBitStream) throws -> Int {
+    public func read<T>(from bitStream: inout ReadableBitStream) throws -> T where T: FixedWidthInteger & SignedInteger {
         let storedValue: UInt = try bitStream.read(numberOfBits: bits)
         if storedValue <= Int.max.magnitude {
-            return Int(storedValue) + minValue
+            return T(Int(storedValue) + minValue)
         } else {
-            return Int(storedValue - absoluteMinValue) + 1
+            return T(Int(storedValue - absoluteMinValue) + 1)
         }
+    }
+    
+    /// Read and decompress an array of integer values from a stream.
+    ///
+    /// - Parameter from: The stream that the value is read from.
+    ///
+    /// - Returns: The decompressed integer value.
+    @inlinable
+    public func read<T>(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [T] where T: FixedWidthInteger & SignedInteger {
+        let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = try Int(bitStream.read(numberOfBits: bits) as UInt32)
+        var result: [T] = []
+        if count == 0 { return result }
+        for _ in 0..<count {
+            try result.append(read(from: &bitStream))
+        }
+        return result
     }
 }
 
@@ -191,11 +281,24 @@ public struct UIntCompressor {
     /// - Parameter value: The integer to be compressed and written.
     /// - Parameter to: The stream that the integer is written to.
     @inlinable
-    public func write(_ value: UInt, to bitStream: inout WritableBitStream) {
+    public func write<T>(_ value: T, to bitStream: inout WritableBitStream) where T: UnsignedInteger {
         assert(value >= minValue)
         assert(value <= maxValue)
-        let storedValue = value - minValue
+        let storedValue = value - T(minValue)
         bitStream.append(storedValue, numberOfBits: bits)
+    }
+    
+    /// Write a compressed integer into a stream.
+    ///
+    /// - Parameter value: The integer to be compressed and written.
+    /// - Parameter to: The stream that the integer is written to.
+    @inlinable
+    public func write<T>(_ value: [T], maxCount: Int, to bitStream: inout WritableBitStream) where T: UnsignedInteger {
+        let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        bitStream.append(UInt32(value.count), numberOfBits: bits)
+        for element in value {
+            write(element, to: &bitStream)
+        }
     }
     
     /// Read and decompress an integer value from a stream.
@@ -204,9 +307,26 @@ public struct UIntCompressor {
     ///
     /// - Returns: The decompressed integer value.
     @inlinable
-    public func read(from bitStream: inout ReadableBitStream) throws -> UInt {
+    public func read<T>(from bitStream: inout ReadableBitStream) throws -> T where T: UnsignedInteger {
         let storedValue: UInt = try bitStream.read(numberOfBits: bits)
-        return storedValue + minValue
+        return T(storedValue + minValue)
+    }
+    
+    /// Read and decompress an array of integer values from a stream.
+    ///
+    /// - Parameter from: The stream that the value is read from.
+    ///
+    /// - Returns: The decompressed integer value.
+    @inlinable
+    public func read<T>(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [T] where T: UnsignedInteger {
+        let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = try Int(bitStream.read(numberOfBits: bits) as UInt32)
+        var result: [T] = []
+        if count == 0 { return result }
+        for _ in 0..<count {
+            try result.append(read(from: &bitStream))
+        }
+        return result
     }
 }
 

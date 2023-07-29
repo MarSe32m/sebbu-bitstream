@@ -9,7 +9,6 @@
 //TODO: Add a #BitStreamCodable macros that gives automatic conformance to BitStreamCodable and implements the init and encode methods automatically
 //TODO: Documents these property wrappers
 @propertyWrapper
-//TODO: Convert to macro #BitUnsigned(bits: Int)
 public struct BitUnsigned<T: UnsignedInteger & FixedWidthInteger> {
     public var wrappedValue: T = 0
     public let bits: Int
@@ -24,7 +23,6 @@ public struct BitUnsigned<T: UnsignedInteger & FixedWidthInteger> {
 }
 
 @propertyWrapper
-//TODO: Convert to macro #BitSigned(bits: Int)
 public struct BitSigned {
     public var wrappedValue: Int = 0
     public let min: Int
@@ -37,7 +35,6 @@ public struct BitSigned {
 }
 
 @propertyWrapper
-//TODO: Convert to macro #BitFloat(min: Float, max: Float, bits: Int)
 public struct BitFloat {
     public var wrappedValue: Float = 0
     public let minValue: Float

@@ -12,7 +12,7 @@ import SebbuBitStream
 public extension WritableBitStream {
     @inlinable
     mutating func append(_ value: Data) {
-        append([UInt8](value))
+        appendBytes([UInt8](value))
     }
     
     @inline(__always)
@@ -41,7 +41,7 @@ public extension ReadableBitStream {
 
     @inlinable
     mutating func read() throws -> Data {
-        return Data(try read() as [UInt8])
+        return Data(try readBytes() as [UInt8])
     }
     
     @inline(__always)

@@ -109,6 +109,7 @@ final class SebbuBitStreamTests: XCTestCase {
         
         for _ in 0..<10 {
             try _testIntCompressor(lowerBound: Int.random(in: -10000000 ... -1), upperBound: Int.random(in: 1...10000000), writeStream: &writeStream)
+            try _testIntCompressorArray(lowerBound: Int.random(in: -10000 ... -2), upperBound: Int.random(in: 2...10000), writeStream: &writeStream)
         }
     }
     
@@ -133,6 +134,18 @@ final class SebbuBitStreamTests: XCTestCase {
         var readStream = try ReadableBitStream(bytes: writeStream.packBytes(withCrc: true), crcValidated: true)
         for writtenValue in writtenValues {
             XCTAssertEqual(writtenValue, try intCompressor.read(from: &readStream))
+        }
+    }
+    
+    private func _testIntCompressorArray(lowerBound: Int, upperBound: Int, writeStream: inout WritableBitStream) throws {
+        writeStream.reset()
+        let intCompressor = IntCompressor(minValue: lowerBound, maxValue: upperBound)
+        let values = (0..<1024).map {_ in Int.random(in: lowerBound ... upperBound)}
+        intCompressor.write(values, maxCount: 1990, to: &writeStream)
+        var readStream = try ReadableBitStream(bytes: writeStream.packBytes(withCrc: true), crcValidated: true)
+        let readValues = try intCompressor.read(maxCount: 1990, from: &readStream) as [Int]
+        for (readValue, writtenValue) in zip(readValues, values) {
+            XCTAssertEqual(readValue, writtenValue)
         }
     }
     
@@ -245,7 +258,7 @@ final class SebbuBitStreamTests: XCTestCase {
         @BitArray(maxCount: 180, valueBits: 14)
         public var bitArray: [UInt16]
         
-        @BoundedArray(maxCount: 16)
+        @_BoundedArray(maxCount: 16)
         public var boundedArray: [Packet]
         
         internal init(uint8: UInt8, uint16: UInt16, uint32: UInt32, uint64: UInt64, uint: UInt,
@@ -329,7 +342,7 @@ final class SebbuBitStreamTests: XCTestCase {
             ´enum´ = try bitStream.read()
             float = try bitStream.read()
             double = try bitStream.read()
-            bytes = try bitStream.read()
+            bytes = try bitStream.readBytes()
             identifier = try bitStream.read()
             packets = try bitStream.read()
             
@@ -382,7 +395,7 @@ final class SebbuBitStreamTests: XCTestCase {
             bitStream.append(´enum´)
             bitStream.append(float)
             bitStream.append(double)
-            bitStream.append(bytes)
+            bitStream.appendBytes(bytes)
             bitStream.append(identifier)
             bitStream.append(packets)
             

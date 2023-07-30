@@ -75,6 +75,24 @@ public struct WritableBitStream: CustomStringConvertible {
         appendBit(UInt8(value ? 1 : 0))
     }
     
+    /// Append an array of boolean values.
+    ///
+    /// - Parameter value: The boolean values to be encoded.
+    ///
+    /// The `Bool` is encoded as one bit.
+    ///
+    /// - Complexity: O(n)
+    @inlinable
+    public mutating func append(_ value: [Bool], maxCount: Int = 1 << 29) {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        append(UInt32(value.count), numberOfBits: countBits)
+        for element in value {
+            append(element)
+        }
+    }
+    
     /// Append a `FixedWidthInteger`.
     ///
     /// - Parameter value: The integer value to be encoded.
@@ -101,6 +119,33 @@ public struct WritableBitStream: CustomStringConvertible {
         }
     }
     
+    /// Append an array of `FixedWidthInteger`s.
+    ///
+    /// - Parameter value: The integer values to be encoded.
+    ///
+    /// The value is encoded using the corresponding amount of bits as the integer bit width.
+    ///
+    /// - Complexity: O(n)
+    @inlinable
+    @_specialize(exported: true, kind: full, where T == UInt8)
+    @_specialize(exported: true, kind: full, where T == UInt16)
+    @_specialize(exported: true, kind: full, where T == UInt32)
+    @_specialize(exported: true, kind: full, where T == UInt64)
+    @_specialize(exported: true, kind: full, where T == UInt)
+    @_specialize(exported: true, kind: full, where T == Int8)
+    @_specialize(exported: true, kind: full, where T == Int16)
+    @_specialize(exported: true, kind: full, where T == Int32)
+    @_specialize(exported: true, kind: full, where T == Int64)
+    @_specialize(exported: true, kind: full, where T == Int)
+    public mutating func append<T>(_ value: [T], maxCount: Int = 1 << 29) where T: FixedWidthInteger {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        append(UInt32(value.count), numberOfBits: countBits)
+        for element in value {
+            append(element)
+        }
+    }
     
     /// Append an `UnsignedInteger` with a custom number of bits.
     ///
@@ -132,6 +177,22 @@ public struct WritableBitStream: CustomStringConvertible {
     public mutating func append<T>(_ value: T) where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
         append(value.rawValue, numberOfBits: T.bits)
     }
+    
+    /// Append an unsigned integer based enum using the minimal number of bits for its set of possible cases.
+    ///
+    /// - Parameter value: The enum value to be encoded.
+    ///
+    /// - Complexity: O(1)
+    @inlinable
+    public mutating func append<T>(_ value: [T], maxCount: Int = 1 << 29) where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        append(UInt32(value.count), numberOfBits: countBits)
+        for element in value {
+            append(element)
+        }
+    }
 
     /// Append a float value.
     ///
@@ -149,8 +210,11 @@ public struct WritableBitStream: CustomStringConvertible {
     ///
     /// - Complexity: O(n)
     @inlinable
-    public mutating func append(_ value: [Float]) {
-        append(UInt32(value.count), numberOfBits: 29)
+    public mutating func append(_ value: [Float], maxCount: Int = 1 << 29) {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        append(UInt32(value.count), numberOfBits: countBits)
         for element in value {
             append(element)
         }
@@ -172,8 +236,11 @@ public struct WritableBitStream: CustomStringConvertible {
     ///
     /// - Complexity: O(n)
     @inlinable
-    public mutating func append(_ value: [Double]) {
-        append(UInt32(value.count), numberOfBits: 29)
+    public mutating func append(_ value: [Double], maxCount: Int = 1 << 29) {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        append(UInt32(value.count), numberOfBits: countBits)
         for element in value {
             append(element)
         }
@@ -187,7 +254,24 @@ public struct WritableBitStream: CustomStringConvertible {
     /// - Complexity: O(*n*), where *n* is the length of the string
     @inlinable
     public mutating func append(_ value: String) {
-        append([UInt8](value.utf8))
+        appendBytes([UInt8](value.utf8))
+    }
+    
+    /// Append an array of strings using UTF8 encoding.
+    ///
+    /// - Parameter value: An array of UTF8 compatible strings to be encoded
+    ///
+    ///
+    /// - Complexity: O(*n* * *m*), where *n* is the length of the string and m is the length of the array
+    @inlinable
+    public mutating func append(_ value: [String], maxCount: Int = 1 << 29) {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        append(UInt32(value.count), numberOfBits: countBits)
+        for element in value {
+            append(element)
+        }
     }
     
     /// Append bytes.
@@ -196,7 +280,7 @@ public struct WritableBitStream: CustomStringConvertible {
     ///
     /// - Complexity: O(*n*), where *n* is the number of bytes in the bytes to be encoded.
     @inlinable
-    public mutating func append(_ value: [UInt8]) {
+    public mutating func appendBytes(_ value: [UInt8]) {
         align()
         let length = UInt32(value.count)
         append(length)
@@ -327,6 +411,24 @@ public struct ReadableBitStream: CustomStringConvertible {
         return (readBit() > 0) ? true : false
     }
     
+    /// Read an array of boolean values.
+    ///
+    /// - Returns: The decoded boolean value.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
+    @inlinable
+    public mutating func read(maxCount: Int = 1 << 29) throws -> [Bool] {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = Int(try read(numberOfBits: countBits) as UInt32)
+        if count == 0 { return [] }
+        var result: [Bool] = []
+        for _ in 0..<count {
+            try result.append(read())
+        }
+        return result
+    }
+    
     /// Read a float value.
     ///
     /// - Returns: The decoded float value.
@@ -347,8 +449,11 @@ public struct ReadableBitStream: CustomStringConvertible {
     /// - Returns: The decoded float value.
     /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
-    public mutating func read() throws -> [Float] {
-        let count = try Int(read(numberOfBits: 29) as UInt32)
+    public mutating func read(maxCount: Int = 1 << 29) throws -> [Float] {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = Int(try read(numberOfBits: countBits) as UInt32)
         if count == 0 { return [] }
         var result: [Float] = []
         for _ in 0..<count {
@@ -377,8 +482,11 @@ public struct ReadableBitStream: CustomStringConvertible {
     /// - Returns: The decoded doubles.
     /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
-    public mutating func read() throws -> [Double] {
-        let count = try Int(read(numberOfBits: 29) as UInt32)
+    public mutating func read(maxCount: Int = 1 << 29) throws -> [Double] {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = Int(try read(numberOfBits: countBits) as UInt32)
         if count == 0 { return [] }
         var result: [Double] = []
         for _ in 0..<count {
@@ -413,6 +521,34 @@ public struct ReadableBitStream: CustomStringConvertible {
         return bitPattern
     }
     
+    /// Read a `FixedWidthInteger` value.
+    ///
+    /// - Returns: The decoded fixed width integer.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
+    @inlinable
+    @_specialize(exported: true, kind: full, where T == UInt8)
+    @_specialize(exported: true, kind: full, where T == UInt16)
+    @_specialize(exported: true, kind: full, where T == UInt32)
+    @_specialize(exported: true, kind: full, where T == UInt64)
+    @_specialize(exported: true, kind: full, where T == UInt)
+    @_specialize(exported: true, kind: full, where T == Int8)
+    @_specialize(exported: true, kind: full, where T == Int16)
+    @_specialize(exported: true, kind: full, where T == Int32)
+    @_specialize(exported: true, kind: full, where T == Int64)
+    @_specialize(exported: true, kind: full, where T == Int)
+    public mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T] where T: FixedWidthInteger {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = Int(try read(numberOfBits: countBits) as UInt32)
+        if count == 0 { return [] }
+        var result: [T] = []
+        for _ in 0..<count {
+            try result.append(read())
+        }
+        return result
+    }
+    
     /// Read an `UnsignedInteger` value.
     ///
     /// - Returns: The decoded unsigned integer.
@@ -439,7 +575,7 @@ public struct ReadableBitStream: CustomStringConvertible {
     /// - Returns: The decoded buffer of bytes.
     /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
-    public mutating func read() throws -> [UInt8] {
+    public mutating func readBytes() throws -> [UInt8] {
         align()
         let length = Int(try read() as UInt32)
         assert(currentBit & 7 == 0)
@@ -467,6 +603,25 @@ public struct ReadableBitStream: CustomStringConvertible {
         }
         return result
     }
+    
+    /// Read an enum value
+    ///
+    /// - Returns: The decoded enum value.
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
+    /// - Throws: A `BitStreamError.encoding` if the enum couldn't be constructed from the encoded value.
+    @inlinable
+    public mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T] where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = Int(try read(numberOfBits: countBits) as UInt32)
+        if count == 0 { return [] }
+        var result: [T] = []
+        for _ in 0..<count {
+            try result.append(read())
+        }
+        return result
+    }
 
     /// Read a UTF8 string.
     ///
@@ -474,8 +629,26 @@ public struct ReadableBitStream: CustomStringConvertible {
     /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
     public mutating func read() throws -> String {
-        let bytes: [UInt8] = try read()
+        let bytes: [UInt8] = try readBytes()
         return String(decoding: bytes, as: Unicode.UTF8.self)
+    }
+    
+    /// Read a UTF8 string.
+    ///
+    /// - Returns: The UTF8 encoded string
+    /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
+    @inlinable
+    public mutating func read(maxCount: Int = 1 << 29) throws -> [String] {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = Int(try read(numberOfBits: countBits) as UInt32)
+        if count == 0 { return [] }
+        var result: [String] = []
+        for _ in 0..<count {
+            try result.append(read())
+        }
+        return result
     }
     
     @inlinable

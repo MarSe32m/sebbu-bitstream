@@ -49,7 +49,6 @@ public struct BitFloat {
 }
 
 @propertyWrapper
-//TODO: Convert to macro #BitDouble(min: Double, max: Double, bits: Int)
 public struct BitDouble {
     public var wrappedValue: Double = 0
     public let minValue: Double
@@ -78,7 +77,7 @@ public struct BitArray<Value> where Value: UnsignedInteger {
 
 @propertyWrapper
 //TODO: Convert to macro #BoundedArray(maxCount: UInt)
-public struct BoundedArray<Value> where Value: BitStreamCodable {
+public struct _BoundedArray<Value> where Value: BitStreamCodable {
     public var wrappedValue: Array<Value> = []
     public let bits: Int
     
@@ -136,12 +135,12 @@ public extension WritableBitStream {
     
     /// BoundedArray encoding
     @inlinable
-    static func << <T>(bitStream: inout WritableBitStream, value: BoundedArray<T>) where T: BitStreamCodable {
+    static func << <T>(bitStream: inout WritableBitStream, value: _BoundedArray<T>) where T: BitStreamCodable {
         bitStream.append(value)
     }
     
     @inlinable
-    mutating func append<T>(_ value: BoundedArray<T>) where T: BitStreamCodable {
+    mutating func append<T>(_ value: _BoundedArray<T>) where T: BitStreamCodable {
         append(value.wrappedValue, numberOfCountBits: value.bits)
     }
 }
@@ -198,7 +197,7 @@ public extension ReadableBitStream {
     /// Array with chosen bit value for count count decoding, generic
     @inlinable
     @inline(__always)
-    mutating func read<T>(_ value: inout BoundedArray<T>) throws where T: BitStreamCodable {
+    mutating func read<T>(_ value: inout _BoundedArray<T>) throws where T: BitStreamCodable {
         value.wrappedValue = try read(numberOfCountBits: value.bits)
     }
 }

@@ -51,10 +51,11 @@ public extension WritableBitStream {
     /// - Complexity: O(n)
     @inlinable
     @inline(__always)
-    mutating func append<T>(_ array: [T]) where T: BitStreamEncodable {
-        precondition(array.count <= 1 << 29, "BitStreams support only arrays with less than 2^29 objects in it")
-        // We assume that the array doesn't have more than 500 million elements
-        append(UInt32(array.count), numberOfBits: 29)
+    mutating func append<T>(_ array: [T], maxCount: Int = 1 << 29) where T: BitStreamEncodable {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        append(UInt32(array.count), numberOfBits: countBits)
         for element in array {
             append(element)
         }
@@ -69,12 +70,13 @@ public extension WritableBitStream {
     /// - Complexity: O(n)
     @inlinable
     @inline(__always)
-    mutating func append<T>(_ array: [T]?) where T: BitStreamEncodable {
+    mutating func append<T>(_ array: [T]?, maxCount: Int = 1 << 29) where T: BitStreamEncodable {
         append(array != nil)
         guard let array = array else { return }
-        precondition(array.count <= 1 << 29, "BitStreams support only arrays with less than 2^29 objects in it")
-        // We assume that the array doesn't have more than 500 million elements
-        append(UInt32(array.count), numberOfBits: 29)
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        append(UInt32(array.count), numberOfBits: countBits)
         for element in array {
             append(element)
         }
@@ -89,50 +91,11 @@ public extension WritableBitStream {
     /// - Complexity: O(n)
     @inlinable
     @inline(__always)
-    mutating func append<T>(_ array: [T?]) where T: BitStreamEncodable {
-        precondition(array.count <= 1 << 29, "BitStreams support only arrays with less than 2^29 objects in it")
-        // We assume that the array doesn't have more than 500 million elements
-        append(UInt32(array.count), numberOfBits: 29)
-        for element in array {
-            append(element)
-        }
-    }
-    
-    /// Encode an array of `BitStreamEncodable` objects with a specified bit count for encoding the array length
-    ///
-    /// - Parameter array: The array of `BitStreamEncodable` objects to encode.
-    /// - Parameter numberOfCountBits: The number of bits used for encoding the length of the array.
-    ///
-    /// - Note: The `numberOfCountBits` parameter must be more than zero and less than 29.
-    ///
-    /// - Complexity: O(n)
-    @inlinable
-    @inline(__always)
-    mutating func append<T>(_ array: [T], numberOfCountBits: Int) where T: BitStreamEncodable {
-        precondition(numberOfCountBits > 0, "Number of bits used for encoding the length of the array must be more than zero")
-        precondition(numberOfCountBits <= 32, "BitStreams support only arrays with 32 bits of count bits")
-        // We assume that the array doesn't have more than 500 million elements
-        append(UInt32(array.count), numberOfBits: numberOfCountBits)
-        for element in array {
-            append(element)
-        }
-    }
-    
-    /// Encode an array of optional `BitStreamEncodable` objects with a specified bit count for encoding the array length
-    ///
-    /// - Parameter array: The array of `BitStreamEncodable` objects to encode.
-    /// - Parameter numberOfCountBits: The number of bits used for encoding the length of the array.
-    ///
-    /// - Note: The `numberOfCountBits` parameter must be more than zero and less than 29.
-    ///
-    /// - Complexity: O(n)
-    @inlinable
-    @inline(__always)
-    mutating func append<T>(_ array: [T?], numberOfCountBits: Int) where T: BitStreamEncodable {
-        precondition(numberOfCountBits > 0, "Number of bits used for encoding the length of the array must be more than zero")
-        precondition(numberOfCountBits <= 32, "BitStreams support only arrays with 32 bits of count bits")
-        // We assume that the array doesn't have more than 500 million elements
-        append(UInt32(array.count), numberOfBits: numberOfCountBits)
+    mutating func append<T>(_ array: [T?], maxCount: Int = 1 << 29) where T: BitStreamEncodable {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        append(UInt32(array.count), numberOfBits: countBits)
         for element in array {
             append(element)
         }
@@ -164,8 +127,11 @@ public extension ReadableBitStream {
     ///  ```
     @inlinable
     @inline(__always)
-    mutating func read<T>() throws -> [T] where T: BitStreamDecodable {
-        let count = Int(try read(numberOfBits: 29) as UInt32)
+    mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T] where T: BitStreamDecodable {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = Int(try read(numberOfBits: countBits) as UInt32)
         var array: [T] = []
         if count == 0 { return array }
         array.reserveCapacity(count)
@@ -185,33 +151,14 @@ public extension ReadableBitStream {
     ///  ```
     @inlinable
     @inline(__always)
-    mutating func read<T>() throws -> [T]? where T: BitStreamDecodable {
+    mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T]? where T: BitStreamDecodable {
         guard try read() as Bool else { return nil }
-        let count = Int(try read(numberOfBits: 29) as UInt32)
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let count = Int(try read(numberOfBits: countBits) as UInt32)
         var array: [T] = []
         if count == 0 { return array }
-        array.reserveCapacity(count)
-        for _ in 0..<count {
-            array.append(try read())
-        }
-        return array
-    }
-    
-    /// Decode an array of `BitStreamCodable` objects with a specific number of bits used to decode the length of the array
-    ///
-    /// To specify the type that is read, either use type inference or specify the type using casting
-    ///  ```
-    /// var stream = ReadableBitStream(bytes: bytes)
-    /// let array: [Packet] = try stream.read()
-    /// let otherArray = try stream.read() as [Message]
-    ///  ```
-    ///
-    ///  - Parameter numberOfCountBits: Number of bits used to decode the length of the array. This must match the number of bits used to encode the length.
-    @inlinable
-    @inline(__always)
-    mutating func read<T>(numberOfCountBits: Int) throws -> [T] where T: BitStreamDecodable {
-        let count = Int(try read(numberOfBits: numberOfCountBits) as UInt32)
-        var array: [T] = []
         array.reserveCapacity(count)
         for _ in 0..<count {
             array.append(try read())

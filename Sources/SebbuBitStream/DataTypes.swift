@@ -141,7 +141,7 @@ public extension WritableBitStream {
     
     @inlinable
     mutating func append<T>(_ value: _BoundedArray<T>) where T: BitStreamCodable {
-        append(value.wrappedValue, numberOfCountBits: value.bits)
+        append(value.wrappedValue, maxCount: 1 << value.bits)
     }
 }
 
@@ -198,7 +198,7 @@ public extension ReadableBitStream {
     @inlinable
     @inline(__always)
     mutating func read<T>(_ value: inout _BoundedArray<T>) throws where T: BitStreamCodable {
-        value.wrappedValue = try read(numberOfCountBits: value.bits)
+        value.wrappedValue = try read(maxCount: 1 << value.bits)
     }
 }
 

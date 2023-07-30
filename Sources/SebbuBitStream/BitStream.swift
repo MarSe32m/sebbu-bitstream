@@ -423,6 +423,7 @@ public struct ReadableBitStream: CustomStringConvertible {
         let count = Int(try read(numberOfBits: countBits) as UInt32)
         if count == 0 { return [] }
         var result: [Bool] = []
+        result.reserveCapacity(count)
         for _ in 0..<count {
             try result.append(read())
         }
@@ -456,6 +457,7 @@ public struct ReadableBitStream: CustomStringConvertible {
         let count = Int(try read(numberOfBits: countBits) as UInt32)
         if count == 0 { return [] }
         var result: [Float] = []
+        result.reserveCapacity(count)
         for _ in 0..<count {
             try result.append(read())
         }
@@ -489,6 +491,7 @@ public struct ReadableBitStream: CustomStringConvertible {
         let count = Int(try read(numberOfBits: countBits) as UInt32)
         if count == 0 { return [] }
         var result: [Double] = []
+        result.reserveCapacity(count)
         for _ in 0..<count {
             try result.append(read())
         }
@@ -543,6 +546,7 @@ public struct ReadableBitStream: CustomStringConvertible {
         let count = Int(try read(numberOfBits: countBits) as UInt32)
         if count == 0 { return [] }
         var result: [T] = []
+        result.reserveCapacity(count)
         for _ in 0..<count {
             try result.append(read())
         }
@@ -617,6 +621,7 @@ public struct ReadableBitStream: CustomStringConvertible {
         let count = Int(try read(numberOfBits: countBits) as UInt32)
         if count == 0 { return [] }
         var result: [T] = []
+        result.reserveCapacity(count)
         for _ in 0..<count {
             try result.append(read())
         }
@@ -645,6 +650,7 @@ public struct ReadableBitStream: CustomStringConvertible {
         let count = Int(try read(numberOfBits: countBits) as UInt32)
         if count == 0 { return [] }
         var result: [String] = []
+        result.reserveCapacity(count)
         for _ in 0..<count {
             try result.append(read())
         }

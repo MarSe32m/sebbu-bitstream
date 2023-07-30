@@ -280,10 +280,13 @@ public struct WritableBitStream: CustomStringConvertible {
     ///
     /// - Complexity: O(*n*), where *n* is the number of bytes in the bytes to be encoded.
     @inlinable
-    public mutating func appendBytes(_ value: [UInt8]) {
-        align()
+    public mutating func appendBytes(_ value: [UInt8], maxCount: Int = 1 << 29) {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
         let length = UInt32(value.count)
-        append(length)
+        append(length, numberOfBits: countBits)
+        align()
         bytes.append(contentsOf: value)
         endBitIndex += Int(length * 8)
     }
@@ -579,9 +582,12 @@ public struct ReadableBitStream: CustomStringConvertible {
     /// - Returns: The decoded buffer of bytes.
     /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
     @inlinable
-    public mutating func readBytes() throws -> [UInt8] {
+    public mutating func readBytes(maxCount: Int = 1 << 29) throws -> [UInt8] {
+        assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
+        assert(maxCount > 0, "The maximum count must be more than zero")
+        let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
+        let length = Int(try read(numberOfBits: countBits) as UInt32)
         align()
-        let length = Int(try read() as UInt32)
         assert(currentBit & 7 == 0)
         guard currentBit + (length * 8) <= endBitIndex else {
             throw BitStreamError.tooShort

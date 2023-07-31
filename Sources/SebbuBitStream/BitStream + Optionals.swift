@@ -25,7 +25,6 @@ public extension WritableBitStream {
     }
     
     /// Append an optional fixed width integer value to the stream.
-    @inlinable
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
@@ -36,6 +35,7 @@ public extension WritableBitStream {
     @_specialize(exported: true, where T == Int32)
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
+    @inlinable
     mutating func append<T>(_ value: T?) where T: FixedWidthInteger {
         append(value != nil)
         if let value = value {
@@ -44,7 +44,6 @@ public extension WritableBitStream {
     }
     
     /// Append an optional fixed width integer value to the stream.
-    @inlinable
     #if !os(Windows)
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
@@ -57,6 +56,7 @@ public extension WritableBitStream {
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
     #endif
+    @inlinable
     mutating func append<T>(_ value: [T]?, maxCount: Int = 1 << 29) where T: FixedWidthInteger {
         append(value != nil)
         if let value = value {
@@ -65,12 +65,12 @@ public extension WritableBitStream {
     }
     
     /// Append an optional unsigned integer value to the stream with a given number of bits used to encoding.
-    @inlinable
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
+    @inlinable
     mutating func append<T>(_ value: T?, numberOfBits: Int) where T: UnsignedInteger {
         append(value != nil)
         if let value = value {
@@ -182,7 +182,6 @@ public extension ReadableBitStream {
     /// Read an optional fixed width integer value
     ///
     /// - Returns: Fixed width integer value or `nil` if the encoded value was a value or nil respectively
-    @inlinable
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
@@ -193,6 +192,7 @@ public extension ReadableBitStream {
     @_specialize(exported: true, where T == Int32)
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
+    @inlinable
     mutating func read<T>() throws -> T? where T: FixedWidthInteger {
         let hasValue = try read() as Bool
         return hasValue ? try read() as T : nil
@@ -201,7 +201,6 @@ public extension ReadableBitStream {
     /// Read an optional fixed width integer value
     ///
     /// - Returns: Fixed width integer value or `nil` if the encoded value was a value or nil respectively
-    @inlinable
     #if !os(Windows)
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
@@ -214,6 +213,7 @@ public extension ReadableBitStream {
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
     #endif
+    @inlinable
     mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T]? where T: FixedWidthInteger {
         let hasValue = try read() as Bool
         return hasValue ? try read(maxCount: maxCount) as [T] : nil
@@ -222,12 +222,12 @@ public extension ReadableBitStream {
     /// Read an optional unsigned integer value with a given number of bits.
     ///
     /// - Returns: Unsigned integer value or `nil` if the encoded value was a value or nil respectively
-    @inlinable
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
+    @inlinable
     mutating func read<T>(numberOfBits: Int) throws -> T? where T: UnsignedInteger {
         let hasValue = try read() as Bool
         return hasValue ? try read(numberOfBits: numberOfBits) as T : nil

@@ -189,12 +189,12 @@ public struct IntCompressor {
     ///
     /// - Parameter value: The integer to be compressed and written.
     /// - Parameter to: The stream that the integer is written to.
-    @inlinable
     @_specialize(exported: true, where T == Int8)
     @_specialize(exported: true, where T == Int16)
     @_specialize(exported: true, where T == Int32)
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
+    @inlinable
     public func write<T>(_ value: T, to bitStream: inout WritableBitStream) where T: FixedWidthInteger & SignedInteger {
         assert(value >= minValue)
         assert(value <= maxValue)
@@ -212,7 +212,6 @@ public struct IntCompressor {
     ///
     /// - Parameter value: The integer to be compressed and written.
     /// - Parameter to: The stream that the integer is written to.
-    @inlinable
     #if !os(Windows)
     @_specialize(exported: true, where T == Int8)
     @_specialize(exported: true, where T == Int16)
@@ -220,6 +219,7 @@ public struct IntCompressor {
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
     #endif
+    @inlinable
     public func write<T>(_ value: [T], maxCount: Int, to bitStream: inout WritableBitStream) where T: FixedWidthInteger & SignedInteger {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
         bitStream.append(UInt32(value.count), numberOfBits: bits)
@@ -233,12 +233,12 @@ public struct IntCompressor {
     /// - Parameter from: The stream that the value is read from.
     ///
     /// - Returns: The decompressed integer value.
-    @inlinable
     @_specialize(exported: true, where T == Int8)
     @_specialize(exported: true, where T == Int16)
     @_specialize(exported: true, where T == Int32)
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
+    @inlinable
     public func read<T>(from bitStream: inout ReadableBitStream) throws -> T where T: FixedWidthInteger & SignedInteger {
         let storedValue: UInt = try bitStream.read(numberOfBits: bits)
         if storedValue <= Int.max.magnitude {
@@ -253,7 +253,6 @@ public struct IntCompressor {
     /// - Parameter from: The stream that the value is read from.
     ///
     /// - Returns: The decompressed integer value.
-    @inlinable
     #if !os(Windows)
     @_specialize(exported: true, where T == Int8)
     @_specialize(exported: true, where T == Int16)
@@ -261,6 +260,7 @@ public struct IntCompressor {
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
     #endif
+    @inlinable
     public func read<T>(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [T] where T: FixedWidthInteger & SignedInteger {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
         let count = try Int(bitStream.read(numberOfBits: bits) as UInt32)
@@ -304,12 +304,12 @@ public struct UIntCompressor {
     ///
     /// - Parameter value: The integer to be compressed and written.
     /// - Parameter to: The stream that the integer is written to.
-    @inlinable
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
+    @inlinable
     public func write<T>(_ value: T, to bitStream: inout WritableBitStream) where T: UnsignedInteger {
         assert(value >= minValue)
         assert(value <= maxValue)
@@ -321,7 +321,6 @@ public struct UIntCompressor {
     ///
     /// - Parameter value: The integer to be compressed and written.
     /// - Parameter to: The stream that the integer is written to.
-    @inlinable
     #if !os(Windows)
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
@@ -329,6 +328,7 @@ public struct UIntCompressor {
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
     #endif
+    @inlinable
     public func write<T>(_ value: [T], maxCount: Int, to bitStream: inout WritableBitStream) where T: UnsignedInteger {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
         bitStream.append(UInt32(value.count), numberOfBits: bits)
@@ -342,12 +342,12 @@ public struct UIntCompressor {
     /// - Parameter from: The stream that the value is read from.
     ///
     /// - Returns: The decompressed integer value.
-    @inlinable
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
+    @inlinable
     public func read<T>(from bitStream: inout ReadableBitStream) throws -> T where T: UnsignedInteger {
         let storedValue: UInt = try bitStream.read(numberOfBits: bits)
         return T(storedValue + minValue)
@@ -358,7 +358,6 @@ public struct UIntCompressor {
     /// - Parameter from: The stream that the value is read from.
     ///
     /// - Returns: The decompressed integer value.
-    @inlinable
     #if !os(Windows)
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
@@ -366,6 +365,7 @@ public struct UIntCompressor {
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
     #endif
+    @inlinable
     public func read<T>(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [T] where T: UnsignedInteger {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
         let count = try Int(bitStream.read(numberOfBits: bits) as UInt32)

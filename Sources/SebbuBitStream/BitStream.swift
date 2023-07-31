@@ -100,7 +100,6 @@ public struct WritableBitStream: CustomStringConvertible {
     /// The value if encoded using the corresponding amount of bits as the integer bit width.
     ///
     /// - Complexity: O(1)
-    @inlinable
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
@@ -111,6 +110,7 @@ public struct WritableBitStream: CustomStringConvertible {
     @_specialize(exported: true, where T == Int32)
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
+    @inlinable
     public mutating func append<T>(_ value: T) where T: FixedWidthInteger {
         var tempValue = value
         for _ in 0..<value.bitWidth {
@@ -126,7 +126,6 @@ public struct WritableBitStream: CustomStringConvertible {
     /// The value is encoded using the corresponding amount of bits as the integer bit width.
     ///
     /// - Complexity: O(n)
-    @inlinable
     #if !os(Windows)
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
@@ -139,6 +138,7 @@ public struct WritableBitStream: CustomStringConvertible {
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
     #endif
+    @inlinable
     public mutating func append<T>(_ value: [T], maxCount: Int = 1 << 29) where T: FixedWidthInteger {
         assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
         assert(maxCount > 0, "The maximum count must be more than zero")
@@ -155,12 +155,12 @@ public struct WritableBitStream: CustomStringConvertible {
     /// - Parameter numberOfBits: The number of bits to be used to encode the value.
     ///
     /// - Complexity: O(1)
-    @inlinable
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
+    @inlinable
     public mutating func append<T>(_ value: T, numberOfBits: Int) where T: UnsignedInteger {
         var tempValue = value
         assert(numberOfBits <= value.bitWidth)
@@ -507,7 +507,6 @@ public struct ReadableBitStream: CustomStringConvertible {
     ///
     /// - Returns: The decoded fixed width integer.
     /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
-    @inlinable
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
@@ -518,6 +517,7 @@ public struct ReadableBitStream: CustomStringConvertible {
     @_specialize(exported: true, where T == Int32)
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
+    @inlinable
     public mutating func read<T>() throws -> T where T: FixedWidthInteger {
         if currentBit + T.bitWidth > endBitIndex {
             throw BitStreamError.tooShort
@@ -533,7 +533,6 @@ public struct ReadableBitStream: CustomStringConvertible {
     ///
     /// - Returns: The decoded fixed width integer.
     /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
-    @inlinable
     #if !os(Windows)
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
@@ -546,6 +545,7 @@ public struct ReadableBitStream: CustomStringConvertible {
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
     #endif
+    @inlinable
     public mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T] where T: FixedWidthInteger {
         assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
         assert(maxCount > 0, "The maximum count must be more than zero")
@@ -564,12 +564,12 @@ public struct ReadableBitStream: CustomStringConvertible {
     ///
     /// - Returns: The decoded unsigned integer.
     /// - Throws: A `BitStreamError.tooShort` if there are no bits left to read.
-    @inlinable
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
+    @inlinable
     public mutating func read<T>(numberOfBits: Int) throws -> T where T: UnsignedInteger {
         if currentBit + numberOfBits > endBitIndex {
             throw BitStreamError.tooShort

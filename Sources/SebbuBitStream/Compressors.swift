@@ -212,13 +212,11 @@ public struct IntCompressor {
     ///
     /// - Parameter value: The integer to be compressed and written.
     /// - Parameter to: The stream that the integer is written to.
-    #if !os(Windows)
     @_specialize(exported: true, where T == Int8)
     @_specialize(exported: true, where T == Int16)
     @_specialize(exported: true, where T == Int32)
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
-    #endif
     @inlinable
     public func write<T>(_ value: [T], maxCount: Int, to bitStream: inout WritableBitStream) where T: FixedWidthInteger & SignedInteger {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
@@ -253,13 +251,11 @@ public struct IntCompressor {
     /// - Parameter from: The stream that the value is read from.
     ///
     /// - Returns: The decompressed integer value.
-    #if !os(Windows)
     @_specialize(exported: true, where T == Int8)
     @_specialize(exported: true, where T == Int16)
     @_specialize(exported: true, where T == Int32)
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
-    #endif
     @inlinable
     public func read<T>(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [T] where T: FixedWidthInteger & SignedInteger {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
@@ -321,13 +317,11 @@ public struct UIntCompressor {
     ///
     /// - Parameter value: The integer to be compressed and written.
     /// - Parameter to: The stream that the integer is written to.
-    #if !os(Windows)
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
-    #endif
     @inlinable
     public func write<T>(_ value: [T], maxCount: Int, to bitStream: inout WritableBitStream) where T: UnsignedInteger {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
@@ -358,13 +352,11 @@ public struct UIntCompressor {
     /// - Parameter from: The stream that the value is read from.
     ///
     /// - Returns: The decompressed integer value.
-    #if !os(Windows)
     @_specialize(exported: true, where T == UInt8)
     @_specialize(exported: true, where T == UInt16)
     @_specialize(exported: true, where T == UInt32)
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
-    #endif
     @inlinable
     public func read<T>(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [T] where T: UnsignedInteger {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount

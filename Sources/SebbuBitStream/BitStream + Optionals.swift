@@ -44,18 +44,6 @@ public extension WritableBitStream {
     }
     
     /// Append an optional fixed width integer value to the stream.
-    #if !os(Windows)
-    @_specialize(exported: true, where T == UInt8)
-    @_specialize(exported: true, where T == UInt16)
-    @_specialize(exported: true, where T == UInt32)
-    @_specialize(exported: true, where T == UInt64)
-    @_specialize(exported: true, where T == UInt)
-    @_specialize(exported: true, where T == Int8)
-    @_specialize(exported: true, where T == Int16)
-    @_specialize(exported: true, where T == Int32)
-    @_specialize(exported: true, where T == Int64)
-    @_specialize(exported: true, where T == Int)
-    #endif
     @inlinable
     mutating func append<T>(_ value: [T]?, maxCount: Int = 1 << 29) where T: FixedWidthInteger {
         append(value != nil)
@@ -201,18 +189,6 @@ public extension ReadableBitStream {
     /// Read an optional fixed width integer value
     ///
     /// - Returns: Fixed width integer value or `nil` if the encoded value was a value or nil respectively
-    #if !os(Windows)
-    @_specialize(exported: true, where T == UInt8)
-    @_specialize(exported: true, where T == UInt16)
-    @_specialize(exported: true, where T == UInt32)
-    @_specialize(exported: true, where T == UInt64)
-    @_specialize(exported: true, where T == UInt)
-    @_specialize(exported: true, where T == Int8)
-    @_specialize(exported: true, where T == Int16)
-    @_specialize(exported: true, where T == Int32)
-    @_specialize(exported: true, where T == Int64)
-    @_specialize(exported: true, where T == Int)
-    #endif
     @inlinable
     mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T]? where T: FixedWidthInteger {
         let hasValue = try read() as Bool

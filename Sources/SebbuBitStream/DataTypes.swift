@@ -103,11 +103,11 @@ public extension WritableBitStream {
     
     /// BitUnsigned encoding
     @inlinable
-    @_specialize(exported: true, kind: full, where T == UInt8)
-    @_specialize(exported: true, kind: full, where T == UInt16)
-    @_specialize(exported: true, kind: full, where T == UInt32)
-    @_specialize(exported: true, kind: full, where T == UInt64)
-    @_specialize(exported: true, kind: full, where T == UInt)
+    @_specialize(exported: true, where T == UInt8)
+    @_specialize(exported: true, where T == UInt16)
+    @_specialize(exported: true, where T == UInt32)
+    @_specialize(exported: true, where T == UInt64)
+    @_specialize(exported: true, where T == UInt)
     mutating func append<T>(_ value: BitUnsigned<T>) where T: UnsignedInteger {
         append(value.wrappedValue, numberOfBits: value.bits)
     }
@@ -121,11 +121,11 @@ public extension WritableBitStream {
     
     /// BitArray encoding
     @inlinable
-    @_specialize(exported: true, kind: full, where T == UInt8)
-    @_specialize(exported: true, kind: full, where T == UInt16)
-    @_specialize(exported: true, kind: full, where T == UInt32)
-    @_specialize(exported: true, kind: full, where T == UInt64)
-    @_specialize(exported: true, kind: full, where T == UInt)
+    @_specialize(exported: true, where T == UInt8)
+    @_specialize(exported: true, where T == UInt16)
+    @_specialize(exported: true, where T == UInt32)
+    @_specialize(exported: true, where T == UInt64)
+    @_specialize(exported: true, where T == UInt)
     mutating func append<T>(_ value: BitArray<T>) where T: UnsignedInteger {
         append(UInt32(value.wrappedValue.count), numberOfBits: value.countBits)
         for element in value.wrappedValue {
@@ -162,11 +162,11 @@ public extension ReadableBitStream {
     
     /// BitUnsigned decoding
     @inlinable
-    @_specialize(exported: true, kind: full, where T == UInt8)
-    @_specialize(exported: true, kind: full, where T == UInt16)
-    @_specialize(exported: true, kind: full, where T == UInt32)
-    @_specialize(exported: true, kind: full, where T == UInt64)
-    @_specialize(exported: true, kind: full, where T == UInt)
+    @_specialize(exported: true, where T == UInt8)
+    @_specialize(exported: true, where T == UInt16)
+    @_specialize(exported: true, where T == UInt32)
+    @_specialize(exported: true, where T == UInt64)
+    @_specialize(exported: true, where T == UInt)
     mutating func read<T>(_ value: inout BitUnsigned<T>) throws where T: UnsignedInteger {
         value.wrappedValue = try self.read(numberOfBits: value.bits)
     }
@@ -180,11 +180,11 @@ public extension ReadableBitStream {
     
     /// Array with chosen bit value for count decoding
     @inlinable
-    @_specialize(exported: true, kind: full, where T == UInt8)
-    @_specialize(exported: true, kind: full, where T == UInt16)
-    @_specialize(exported: true, kind: full, where T == UInt32)
-    @_specialize(exported: true, kind: full, where T == UInt64)
-    @_specialize(exported: true, kind: full, where T == UInt)
+    @_specialize(exported: true, where T == UInt8)
+    @_specialize(exported: true, where T == UInt16)
+    @_specialize(exported: true, where T == UInt32)
+    @_specialize(exported: true, where T == UInt64)
+    @_specialize(exported: true, where T == UInt)
     mutating func read<T>(_ value: inout BitArray<T>) throws where T: UnsignedInteger {
         let count = Int(try self.read(numberOfBits: value.countBits) as UInt32)
         value.wrappedValue.removeAll(keepingCapacity: true)

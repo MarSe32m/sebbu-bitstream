@@ -36,8 +36,7 @@ public extension RawRepresentable where Self: CaseIterable, RawValue == UInt32 {
     }
 }
 
-//@usableFromInline
-public func pow(_ base: Double, _ exponent: Int) -> Double {
+internal func pow(_ base: Double, _ exponent: Int) -> Double {
     var result = 1.0
     var absExponent = Int(exponent.magnitude)
     if absExponent == 0 { return 1.0 }

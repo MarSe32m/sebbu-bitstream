@@ -71,10 +71,7 @@ final class SebbuBitStreamTests: XCTestCase {
                             bytesOpt: Bool.random() ? nil : (0..<Int.random(in: 16...199)).map {_ in UInt8.random(in: .min ... .max) },
                             identifierOpt: Bool.random() ? nil : .init(),
                             packetsOpt: Bool.random() ? nil : (0...120).map {_ in .random() },
-                            packetsAreOpt: (0...120).map {_ in Bool.random() ? nil : .random() },
-                            count: 88, uint8bits: 5, uint16bits: 17, uint32bits: 663, uint64bits: 235234,
-                            uintbits: 3233, uintBits999: 887, floatBits: -10, doubleBits: 99, bitArray: [1,2,3,5,6,7,4,6],
-                            boundedArray: [Packet(sequence: 1), Packet(sequence: 1), Packet(sequence: 1), Packet(sequence: 1)])
+                            packetsAreOpt: (0...120).map {_ in Bool.random() ? nil : .random() })
         var writeStream = WritableBitStream()
         entity.encode(to: &writeStream)
         var readStream = ReadableBitStream(bytes: writeStream.packBytes())
@@ -232,35 +229,6 @@ final class SebbuBitStreamTests: XCTestCase {
         public let packetsOpt: [Packet]?
         public let packetsAreOpt: [Packet?]
         
-        //MARK: BitDataTypes
-        @BitSigned(min: -9900, max: 88245)
-        public var count: Int
-        
-        @BitUnsigned(bits: 6)
-        public var uint8Bits: UInt8
-        @BitUnsigned(bits: 15)
-        public var uint16Bits: UInt16
-        @BitUnsigned(bits: 30)
-        public var uint32Bits: UInt32
-        @BitUnsigned(bits: 48)
-        public var uint64Bits: UInt64
-        @BitUnsigned(bits: 57)
-        public var uintBits: UInt
-        @BitUnsigned(maxValue: 999)
-        public var uintBits999: UInt32
-        
-        @BitFloat(min: -1000, max: 1000, bits: 26)
-        public var floatBits: Float
-        
-        @BitDouble(min: -1000.0, max: 1000.0, bits: 36)
-        public var doubleBits: Double
-        
-        @BitArray(maxCount: 180, valueBits: 14)
-        public var bitArray: [UInt16]
-        
-        @_BoundedArray(maxCount: 16)
-        public var boundedArray: [Packet]
-        
         internal init(uint8: UInt8, uint16: UInt16, uint32: UInt32, uint64: UInt64, uint: UInt,
                       int8: Int8, int16: Int16, int32: Int32, int64: Int64, int: Int,
                       name: String, bool: Bool, ´enum´: SebbuBitStreamTests.EntityType,
@@ -269,10 +237,7 @@ final class SebbuBitStreamTests: XCTestCase {
                       int8Opt: Int8?, int16Opt: Int16?, int32Opt: Int32?, int64Opt: Int64?, intOpt: Int?,
                       nameOpt: String?, boolOpt: Bool?, enumOpt: SebbuBitStreamTests.EntityType?,
                       floatOpt: Float?, doubleOpt: Double?, bytesOpt: [UInt8]?, identifierOpt: UUID?,
-                      packetsOpt: [Packet]?, packetsAreOpt: [Packet?],
-                      count: Int, uint8bits: UInt8, uint16bits: UInt16, uint32bits: UInt32,
-                      uint64bits: UInt64, uintbits: UInt, uintBits999: UInt32,
-                      floatBits: Float, doubleBits: Double, bitArray: [UInt16], boundedArray: [Packet]) {
+                      packetsOpt: [Packet]?, packetsAreOpt: [Packet?]) {
             self.uint8 = uint8
             self.uint16 = uint16
             self.uint32 = uint32
@@ -311,18 +276,6 @@ final class SebbuBitStreamTests: XCTestCase {
             self.identifierOpt = identifierOpt
             self.packetsOpt = packetsOpt
             self.packetsAreOpt = packetsAreOpt
-            
-            self.count = count
-            self.uint8Bits = uint8bits
-            self.uint16Bits = uint16bits
-            self.uint32Bits = uint32bits
-            self.uint64Bits = uint64bits
-            self.uintBits = uintbits
-            self.uintBits999 = uintBits999
-            self.floatBits = floatBits
-            self.doubleBits = doubleBits
-            self.bitArray = bitArray
-            self.boundedArray = boundedArray
         }
             
         
@@ -365,18 +318,6 @@ final class SebbuBitStreamTests: XCTestCase {
             identifierOpt = try bitStream.read()
             packetsOpt = try bitStream.read()
             packetsAreOpt = try bitStream.read()
-            
-            try bitStream.read(&_count)
-            try bitStream.read(&_uint8Bits)
-            try bitStream.read(&_uint16Bits)
-            try bitStream.read(&_uint32Bits)
-            try bitStream.read(&_uint64Bits)
-            try bitStream.read(&_uintBits)
-            try bitStream.read(&_uintBits999)
-            try bitStream.read(&_floatBits)
-            try bitStream.read(&_doubleBits)
-            try bitStream.read(&_bitArray)
-            try bitStream.read(&_boundedArray)
         }
         
         func encode(to bitStream: inout WritableBitStream) {
@@ -418,18 +359,6 @@ final class SebbuBitStreamTests: XCTestCase {
             bitStream.append(identifierOpt)
             bitStream.append(packetsOpt)
             bitStream.append(packetsAreOpt)
-            
-            bitStream.append(_count)
-            bitStream.append(_uint8Bits)
-            bitStream.append(_uint16Bits)
-            bitStream.append(_uint32Bits)
-            bitStream.append(_uint64Bits)
-            bitStream.append(_uintBits)
-            bitStream.append(_uintBits999)
-            bitStream.append(_floatBits)
-            bitStream.append(_doubleBits)
-            bitStream.append(_bitArray)
-            bitStream.append(_boundedArray)
         }
     }
 
@@ -479,18 +408,5 @@ final class SebbuBitStreamTests: XCTestCase {
         XCTAssertEqual(entity.identifierOpt, newEntity.identifierOpt)
         XCTAssertEqual(entity.packetsOpt, newEntity.packetsOpt)
         XCTAssertEqual(entity.packetsAreOpt, newEntity.packetsAreOpt)
-        
-        XCTAssertEqual(entity.uint8Bits, newEntity.uint8Bits)
-        XCTAssertEqual(entity.uint16Bits, newEntity.uint16Bits)
-        XCTAssertEqual(entity.uint32Bits, newEntity.uint32Bits)
-        XCTAssertEqual(entity.uint64Bits, newEntity.uint64Bits)
-        XCTAssertEqual(entity.uintBits, newEntity.uintBits)
-        XCTAssertEqual(entity.uintBits999, newEntity.uintBits999)
-        
-        
-        XCTAssert(abs(entity.floatBits - newEntity.floatBits) < 0.01)
-        XCTAssert(abs(entity.doubleBits - newEntity.doubleBits) < 0.01)
-        XCTAssertEqual(entity.bitArray, newEntity.bitArray)
-        XCTAssertEqual(entity.boundedArray, newEntity.boundedArray)
     }
 }

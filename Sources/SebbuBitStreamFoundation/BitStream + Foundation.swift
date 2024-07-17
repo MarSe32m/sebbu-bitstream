@@ -35,8 +35,8 @@ public extension WritableBitStream {
 
 public extension ReadableBitStream {
     @inlinable
-    init(data: Data) {
-        self.init(bytes: [UInt8](data))
+    init(data: Data) throws {
+        try self.init(bytes: [UInt8](data))
     }
 
     @inlinable

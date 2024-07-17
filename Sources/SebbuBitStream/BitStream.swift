@@ -12,7 +12,6 @@ public enum BitStreamError: Error {
     case incorrectChecksum
 }
 
-//TODO: non-copyable?
 /// A writable bit stream used to encode objects into a packed stream of bytes.
 ///
 /// Basic usage
@@ -325,7 +324,6 @@ public struct WritableBitStream: CustomStringConvertible {
     }
 }
 
-//TODO: non-copyable?
 /// A readable bit stream used to decode packed bytes by a writable bit stream.
 ///
 /// Basic usage
@@ -354,8 +352,10 @@ public struct ReadableBitStream: CustomStringConvertible {
     /// Initialize a new `ReadableBitStream` from given bytes.
     ///
     /// - Parameter bytes: Bytes that are decoded.
-    public init(bytes data: [UInt8]) {
-        precondition(data.count >= 4, "Failed to initialize bit stream, the provided count was \(data.count)")
+    public init(bytes data: [UInt8]) throws {
+        if data.count < 4 {
+            throw BitStreamError.tooShort
+        }
         // Since arrays are copy-on-write, this will not copy 
         // unless the passed in array is modified by the outside caller
         self.bytes = data
@@ -372,7 +372,9 @@ public struct ReadableBitStream: CustomStringConvertible {
     /// - Parameter bytes: Bytes that are decoded.
     /// - Parameter crcValidated: Boolean value to indicate wheter to validate an appended crc.
     public init(bytes data: [UInt8], crcValidated: Bool) throws {
-        precondition(data.count >= 8, "Failed to initialize bit stream, the provided count was \(data.count)")
+        if data.count < 8 {
+            throw BitStreamError.tooShort
+        }
         if _fastPath(crcValidated) {
             let checksum = data[0..<data.count - 4].crcChecksum
             var crc = UInt32(data[data.count - 4])
@@ -381,7 +383,7 @@ public struct ReadableBitStream: CustomStringConvertible {
             crc |= (UInt32(data[data.count - 1]) << 24)
             if checksum != crc { throw BitStreamError.incorrectChecksum }
         }
-        self = ReadableBitStream(bytes: data)
+        self = try ReadableBitStream(bytes: data)
     }
     
     public var description: String {

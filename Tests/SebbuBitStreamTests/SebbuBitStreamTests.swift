@@ -74,7 +74,7 @@ final class SebbuBitStreamTests: XCTestCase {
                             packetsAreOpt: (0...120).map {_ in Bool.random() ? nil : .random() })
         var writeStream = WritableBitStream()
         entity.encode(to: &writeStream)
-        var readStream = ReadableBitStream(bytes: writeStream.packBytes())
+        var readStream = try ReadableBitStream(bytes: writeStream.packBytes())
         var newEntity: Entity = try readStream.read()
         try assert(entity: entity, newEntity: newEntity)
         
@@ -151,7 +151,7 @@ final class SebbuBitStreamTests: XCTestCase {
         for i in lowerBound...upperBound {
             writeStream.append(i)
         }
-        var readStream = ReadableBitStream(bytes: writeStream.packBytes())
+        var readStream = try ReadableBitStream(bytes: writeStream.packBytes())
         for i in lowerBound...upperBound {
             XCTAssertEqual(i, try readStream.read())
         }

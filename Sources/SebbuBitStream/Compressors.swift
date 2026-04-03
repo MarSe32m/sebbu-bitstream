@@ -56,7 +56,7 @@ public struct FloatCompressor {
     ///
     /// - Returns: The decompressed float value.
     @inlinable
-    public func read(from stream: inout ReadableBitStream) throws -> Float {
+    public func read(from stream: inout ReadableBitStream) throws(BitStreamError) -> Float {
         let bitPattern = try stream.read(numberOfBits: bits) as UInt32
 
         let ratio = Float(Double(bitPattern) / maxBitValue)
@@ -69,7 +69,7 @@ public struct FloatCompressor {
     ///
     /// - Returns: The decompressed integer value.
     @inlinable
-    public func read(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [Float] {
+    public func read(maxCount: Int, from bitStream: inout ReadableBitStream) throws(BitStreamError) -> [Float] {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
         let count = try Int(bitStream.read(numberOfBits: bits) as UInt32)
         var result: [Float] = []
@@ -131,7 +131,7 @@ public struct DoubleCompressor {
     ///
     /// - Returns: The decompressed double value.
     @inlinable
-    public func read(from stream: inout ReadableBitStream) throws -> Double {
+    public func read(from stream: inout ReadableBitStream) throws(BitStreamError) -> Double {
         let bitPattern = try stream.read(numberOfBits: bits) as UInt64
 
         let ratio = Double(bitPattern) / maxBitValue
@@ -144,7 +144,7 @@ public struct DoubleCompressor {
     ///
     /// - Returns: The decompressed integer value.
     @inlinable
-    public func read(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [Double] {
+    public func read(maxCount: Int, from bitStream: inout ReadableBitStream) throws(BitStreamError) -> [Double] {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
         let count = try Int(bitStream.read(numberOfBits: bits) as UInt32)
         var result: [Double] = []
@@ -237,7 +237,7 @@ public struct IntCompressor {
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
     @inlinable
-    public func read<T>(from bitStream: inout ReadableBitStream) throws -> T where T: FixedWidthInteger & SignedInteger {
+    public func read<T>(from bitStream: inout ReadableBitStream) throws(BitStreamError) -> T where T: FixedWidthInteger & SignedInteger {
         let storedValue: UInt = try bitStream.read(numberOfBits: bits)
         if storedValue <= Int.max.magnitude {
             return T(Int(storedValue) + minValue)
@@ -257,7 +257,7 @@ public struct IntCompressor {
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
     @inlinable
-    public func read<T>(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [T] where T: FixedWidthInteger & SignedInteger {
+    public func read<T>(maxCount: Int, from bitStream: inout ReadableBitStream) throws(BitStreamError) -> [T] where T: FixedWidthInteger & SignedInteger {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
         let count = try Int(bitStream.read(numberOfBits: bits) as UInt32)
         var result: [T] = []
@@ -342,7 +342,7 @@ public struct UIntCompressor {
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
     @inlinable
-    public func read<T>(from bitStream: inout ReadableBitStream) throws -> T where T: UnsignedInteger {
+    public func read<T>(from bitStream: inout ReadableBitStream) throws(BitStreamError) -> T where T: UnsignedInteger {
         let storedValue: UInt = try bitStream.read(numberOfBits: bits)
         return T(storedValue + minValue)
     }
@@ -358,7 +358,7 @@ public struct UIntCompressor {
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
     @inlinable
-    public func read<T>(maxCount: Int, from bitStream: inout ReadableBitStream) throws -> [T] where T: UnsignedInteger {
+    public func read<T>(maxCount: Int, from bitStream: inout ReadableBitStream) throws(BitStreamError) -> [T] where T: UnsignedInteger {
         let bits = UInt64.bitWidth - maxCount.leadingZeroBitCount
         let count = try Int(bitStream.read(numberOfBits: bits) as UInt32)
         var result: [T] = []
@@ -388,13 +388,13 @@ public extension FloatCompressor {
     
     /// Read a SIMD2-vector from the stream.
     @inlinable
-    func read(from stream: inout ReadableBitStream) throws -> SIMD2<Float> {
+    func read(from stream: inout ReadableBitStream) throws(BitStreamError) -> SIMD2<Float> {
         return SIMD2<Float>(x: try read(from: &stream), y: try read(from: &stream))
     }
     
     /// Read a SIMD3-vector from the stream.
     @inlinable
-    func read(from stream: inout ReadableBitStream) throws -> SIMD3<Float> {
+    func read(from stream: inout ReadableBitStream) throws(BitStreamError) -> SIMD3<Float> {
         return SIMD3<Float>(
             x: try read(from: &stream),
             y: try read(from: &stream),
@@ -420,13 +420,13 @@ public extension DoubleCompressor {
     
     /// Read a SIMD2-vector from the stream.
     @inlinable
-    func read(from stream: inout ReadableBitStream) throws -> SIMD2<Double> {
+    func read(from stream: inout ReadableBitStream) throws(BitStreamError) -> SIMD2<Double> {
         return SIMD2<Double>(x: try read(from: &stream), y: try read(from: &stream))
     }
     
     /// Read a SIMD3-vector from the stream.
     @inlinable
-    func read(from stream: inout ReadableBitStream) throws -> SIMD3<Double> {
+    func read(from stream: inout ReadableBitStream) throws(BitStreamError) -> SIMD3<Double> {
         return SIMD3<Double>(
             x: try read(from: &stream),
             y: try read(from: &stream),

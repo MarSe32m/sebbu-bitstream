@@ -153,7 +153,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: Boolean value or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func read() throws -> Bool? {
+    mutating func read() throws(BitStreamError) -> Bool? {
         let hasValue = try read() as Bool
         return hasValue ? try read() as Bool : nil
     }
@@ -162,7 +162,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: Boolean value or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func read(maxCount: Int = 1 << 29) throws -> [Bool]? {
+    mutating func read(maxCount: Int = 1 << 29) throws(BitStreamError) -> [Bool]? {
         let hasValue = try read() as Bool
         return hasValue ? try read(maxCount: maxCount) as [Bool] : nil
     }
@@ -181,7 +181,7 @@ public extension ReadableBitStream {
     @_specialize(exported: true, where T == Int64)
     @_specialize(exported: true, where T == Int)
     @inlinable
-    mutating func read<T>() throws -> T? where T: FixedWidthInteger {
+    mutating func read<T>() throws(BitStreamError) -> T? where T: FixedWidthInteger {
         let hasValue = try read() as Bool
         return hasValue ? try read() as T : nil
     }
@@ -190,7 +190,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: Fixed width integer value or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T]? where T: FixedWidthInteger {
+    mutating func read<T>(maxCount: Int = 1 << 29) throws(BitStreamError) -> [T]? where T: FixedWidthInteger {
         let hasValue = try read() as Bool
         return hasValue ? try read(maxCount: maxCount) as [T] : nil
     }
@@ -204,7 +204,7 @@ public extension ReadableBitStream {
     @_specialize(exported: true, where T == UInt64)
     @_specialize(exported: true, where T == UInt)
     @inlinable
-    mutating func read<T>(numberOfBits: Int) throws -> T? where T: UnsignedInteger {
+    mutating func read<T>(numberOfBits: Int) throws(BitStreamError) -> T? where T: UnsignedInteger {
         let hasValue = try read() as Bool
         return hasValue ? try read(numberOfBits: numberOfBits) as T : nil
     }
@@ -213,7 +213,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: Enum value or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func read<T>() throws -> T? where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
+    mutating func read<T>() throws(BitStreamError) -> T? where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
         let hasValue = try read() as Bool
         return hasValue ? try read() as T : nil
     }
@@ -222,7 +222,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: Enum value or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T]? where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
+    mutating func read<T>(maxCount: Int = 1 << 29) throws(BitStreamError) -> [T]? where T: CaseIterable & RawRepresentable, T.RawValue == UInt32 {
         let hasValue = try read() as Bool
         return hasValue ? try read(maxCount: maxCount) as [T] : nil
     }
@@ -231,7 +231,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: Float value or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func read() throws -> Float? {
+    mutating func read() throws(BitStreamError) -> Float? {
         let hasValue = try read() as Bool
         return hasValue ? try read() as Float : nil
     }
@@ -240,7 +240,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: Float value or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func read(maxCount: Int = 1 << 29) throws -> [Float]? {
+    mutating func read(maxCount: Int = 1 << 29) throws(BitStreamError) -> [Float]? {
         let hasValue = try read() as Bool
         return hasValue ? try read(maxCount: maxCount) as [Float] : nil
     }
@@ -249,7 +249,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: Double value or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func read() throws -> Double? {
+    mutating func read() throws(BitStreamError) -> Double? {
         let hasValue = try read() as Bool
         return hasValue ? try read() as Double : nil
     }
@@ -258,7 +258,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: Double value or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func read(maxCount: Int = 1 << 29) throws -> [Double]? {
+    mutating func read(maxCount: Int = 1 << 29) throws(BitStreamError) -> [Double]? {
         let hasValue = try read() as Bool
         return hasValue ? try read(maxCount: maxCount) as [Double] : nil
     }
@@ -267,7 +267,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: UTF8 encoded string or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func read() throws -> String? {
+    mutating func read() throws(BitStreamError) -> String? {
         let hasValue = try read() as Bool
         return hasValue ? try read() as String : nil
     }
@@ -276,7 +276,7 @@ public extension ReadableBitStream {
     ///
     /// - Returns: The array of UTF8 encoded strings or `nil`
     @inlinable
-    mutating func read(maxCount: Int = 1 << 29) throws -> [String]? {
+    mutating func read(maxCount: Int = 1 << 29) throws(BitStreamError) -> [String]? {
         let hasValue = try read() as Bool
         return hasValue ? try read(maxCount: maxCount) as [String] : nil
     }
@@ -285,14 +285,14 @@ public extension ReadableBitStream {
     ///
     /// - Returns: Buffer of bytes or `nil` if the encoded value was a value or nil respectively
     @inlinable
-    mutating func readBytes() throws -> [UInt8]? {
+    mutating func readBytes() throws(BitStreamError) -> [UInt8]? {
         let hasValue = try read() as Bool
         return hasValue ? try readBytes() as [UInt8] : nil
     }
 }
 
 extension Optional: BitStreamDecodable where Wrapped: BitStreamDecodable {
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         let hasValue = try bitStream.read() as Bool
         self = hasValue ? .some(try bitStream.read() as Wrapped) : .none
     }

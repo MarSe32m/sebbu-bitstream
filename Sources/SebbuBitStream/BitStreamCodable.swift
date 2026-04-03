@@ -13,7 +13,7 @@ public protocol BitStreamEncodable {
 
 /// A type that can decode itself from a bit stream representation.
 public protocol BitStreamDecodable {
-    init(from bitStream: inout ReadableBitStream) throws
+    init(from bitStream: inout ReadableBitStream) throws(BitStreamError)
 }
 
 /// A type that can convert itself into and out of a bit stream representation.
@@ -113,7 +113,7 @@ public extension ReadableBitStream {
     ///  ```
     @inlinable
     @inline(__always)
-    mutating func read<T>() throws -> T where T: BitStreamDecodable {
+    mutating func read<T>() throws(BitStreamError) -> T where T: BitStreamDecodable {
         return try T(from: &self)
     }
     
@@ -127,7 +127,7 @@ public extension ReadableBitStream {
     ///  ```
     @inlinable
     @inline(__always)
-    mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T] where T: BitStreamDecodable {
+    mutating func read<T>(maxCount: Int = 1 << 29) throws(BitStreamError) -> [T] where T: BitStreamDecodable {
         assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
         assert(maxCount > 0, "The maximum count must be more than zero")
         let countBits = UInt64.bitWidth - maxCount.leadingZeroBitCount
@@ -151,7 +151,7 @@ public extension ReadableBitStream {
     ///  ```
     @inlinable
     @inline(__always)
-    mutating func read<T>(maxCount: Int = 1 << 29) throws -> [T]? where T: BitStreamDecodable {
+    mutating func read<T>(maxCount: Int = 1 << 29) throws(BitStreamError) -> [T]? where T: BitStreamDecodable {
         guard try read() as Bool else { return nil }
         assert(maxCount <= 1 << 29, "The maximum count of the array must be less than 2^29")
         assert(maxCount > 0, "The maximum count must be more than zero")
@@ -173,7 +173,7 @@ extension Bool: BitStreamCodable {
         fatalError("Bool conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("Bool conformance of BitStreamDecodable is unavailable")
     }
 }
@@ -184,7 +184,7 @@ extension UInt8: BitStreamCodable {
         fatalError("UInt8 conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("UInt8 conformance of BitStreamDecodable is unavailable")
     }
 }
@@ -195,7 +195,7 @@ extension UInt16: BitStreamCodable {
         fatalError("UInt16 conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("UInt16 conformance of BitStreamDecodable is unavailable")
     }
 }
@@ -206,7 +206,7 @@ extension UInt32: BitStreamCodable {
         fatalError("UInt32 conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("UInt32 conformance of BitStreamDecodable is unavailable")
     }
 }
@@ -217,7 +217,7 @@ extension UInt64: BitStreamCodable {
         fatalError("UInt64 conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("UInt64 conformance of BitStreamDecodable is unavailable")
     }
 }
@@ -228,7 +228,7 @@ extension UInt: BitStreamCodable {
         fatalError("UInt conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("UInt conformance of BitStreamDecodable is unavailable")
     }
 }
@@ -239,7 +239,7 @@ extension Int8: BitStreamCodable {
         fatalError("Int8 conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("Int8 conformance of BitStreamDecodable is unavailable")
     }
 }
@@ -250,7 +250,7 @@ extension Int16: BitStreamCodable {
         fatalError("Int16 conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("Int16 conformance of BitStreamDecodable is unavailable")
     }
 }
@@ -261,7 +261,7 @@ extension Int32: BitStreamCodable {
         fatalError("Int32 conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("Int32 conformance of BitStreamDecodable is unavailable")
     }
 }
@@ -272,7 +272,7 @@ extension Int64: BitStreamCodable {
         fatalError("Int64 conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("Int64 conformance of BitStreamDecodable is unavailable")
     }
 }
@@ -283,14 +283,14 @@ extension Int: BitStreamCodable {
         fatalError("Int conformance of BitStreamEncodable is unavailable")
     }
     
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("Int conformance of BitStreamDecodable is unavailable")
     }
 }
 
 @available(*, unavailable)
 extension Float: BitStreamCodable {
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("Float conformance to BitStreamDecodable is unavailable")
     }
 
@@ -301,7 +301,7 @@ extension Float: BitStreamCodable {
 
 @available(*, unavailable)
 extension Double: BitStreamCodable {
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("Double conformance to BitStreamDecodable is unavailable")
     }
 
@@ -312,7 +312,7 @@ extension Double: BitStreamCodable {
 
 @available(*, unavailable)
 extension String: BitStreamCodable {
-    public init(from bitStream: inout ReadableBitStream) throws {
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
         fatalError("String conformance to BitStreamDecodable is unavailable")
     }
 

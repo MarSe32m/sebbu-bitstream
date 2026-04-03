@@ -74,15 +74,21 @@ final class SebbuBitStreamTests: XCTestCase {
                             packetsAreOpt: (0...120).map {_ in Bool.random() ? nil : .random() })
         var writeStream = WritableBitStream()
         entity.encode(to: &writeStream)
-        var readStream = try ReadableBitStream(bytes: writeStream.packBytes())
-        var newEntity: Entity = try readStream.read()
-        try assert(entity: entity, newEntity: newEntity)
+        do {
+            let bytes = writeStream.finalize()
+            var readStream = try ReadableBitStream(bytes)
+            let newEntity: Entity = try readStream.read()
+            try assert(entity: entity, newEntity: newEntity)
+        }
         
-        writeStream = WritableBitStream()
+        writeStream.reset(keepingCapacity: true)
         entity.encode(to: &writeStream)
-        readStream = try ReadableBitStream(bytes: writeStream.packBytes(withCrc: true), crcValidated: true)
-        newEntity = try readStream.read()
-        try assert(entity: entity, newEntity: newEntity)
+        do {
+            let bytes = writeStream.finalize(crc: true)
+            var readStream = try ReadableBitStream.createValidatingCrc(bytes)
+            let newEntity: Entity = try readStream.read()
+            try assert(entity: entity, newEntity: newEntity)
+        }
     }
     
     func testIntCompressor() throws {
@@ -127,8 +133,8 @@ final class SebbuBitStreamTests: XCTestCase {
                 break
             }
         }
-        
-        var readStream = try ReadableBitStream(bytes: writeStream.packBytes(withCrc: true), crcValidated: true)
+        let bytes = writeStream.finalize(crc: true)
+        var readStream = try ReadableBitStream.createValidatingCrc(bytes)
         for writtenValue in writtenValues {
             XCTAssertEqual(writtenValue, try intCompressor.read(from: &readStream))
         }
@@ -139,7 +145,7 @@ final class SebbuBitStreamTests: XCTestCase {
         let intCompressor = IntCompressor(minValue: lowerBound, maxValue: upperBound)
         let values = (0..<1024).map {_ in Int.random(in: lowerBound ... upperBound)}
         intCompressor.write(values, maxCount: 1990, to: &writeStream)
-        var readStream = try ReadableBitStream(bytes: writeStream.packBytes(withCrc: true), crcValidated: true)
+        var readStream = try ReadableBitStream.createValidatingCrc(writeStream.finalize(crc: true))
         let readValues = try intCompressor.read(maxCount: 1990, from: &readStream) as [Int]
         for (readValue, writtenValue) in zip(readValues, values) {
             XCTAssertEqual(readValue, writtenValue)
@@ -151,7 +157,7 @@ final class SebbuBitStreamTests: XCTestCase {
         for i in lowerBound...upperBound {
             writeStream.append(i)
         }
-        var readStream = try ReadableBitStream(bytes: writeStream.packBytes())
+        var readStream = try ReadableBitStream(writeStream.finalize())
         for i in lowerBound...upperBound {
             XCTAssertEqual(i, try readStream.read())
         }
@@ -164,7 +170,7 @@ final class SebbuBitStreamTests: XCTestCase {
             self.sequence = sequence
         }
         
-        init(from bitStream: inout ReadableBitStream) throws {
+        init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
             sequence = try bitStream.read()
         }
         
@@ -279,7 +285,7 @@ final class SebbuBitStreamTests: XCTestCase {
         }
             
         
-        init(from bitStream: inout ReadableBitStream) throws {
+        init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
             uint8 = try bitStream.read()
             uint16 = try bitStream.read()
             uint32 = try bitStream.read()

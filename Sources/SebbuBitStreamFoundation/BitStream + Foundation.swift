@@ -22,50 +22,43 @@ public extension WritableBitStream {
     
     @inlinable
     @inline(__always)
-    mutating func packData(withCrc: Bool = false) -> Data {
-        return Data(packBytes(withCrc: withCrc))
-    }
-    
-    @inlinable
-    @inline(__always)
     mutating func append(_ value: CGFloat) {
         append(Double(value))
     }
 }
 
 public extension ReadableBitStream {
-    @inlinable
-    init(data: Data) throws {
-        try self.init(bytes: [UInt8](data))
-    }
-
-    @inlinable
-    mutating func read() throws -> Data {
-        return Data(try readBytes() as [UInt8])
-    }
-    
     @inline(__always)
-    mutating func read() throws -> UUID {
+    mutating func read() throws(BitStreamError) -> UUID {
         return try UUID(from: &self)
     }
     
     @inlinable
-    mutating func read() throws -> CGFloat {
+    mutating func read() throws(BitStreamError) -> CGFloat {
         return CGFloat(try read() as Double)
     }
 }
 
 extension UUID: BitStreamCodable {
-    public init(from bitStream: inout ReadableBitStream) throws {
-        let data: [UInt8] = try (0..<16).map {_ in try bitStream.read()}
-        if data.count != 16 {
-            throw BitStreamError.encodingError
-        }
-        
-        let uuid: uuid_t = (data[0], data[1], data[2], data[3],
-                            data[4], data[5], data[6], data[7],
-                            data[8], data[9], data[10], data[11],
-                            data[12], data[13], data[14], data[15])
+    public init(from bitStream: inout ReadableBitStream) throws(BitStreamError) {
+        let uuid: uuid_t = (
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read(),
+            try bitStream.read()
+        )
         self = UUID(uuid: uuid)
     }
     
@@ -96,7 +89,7 @@ public extension DoubleCompressor {
     }
     
     @inlinable
-    func read(from bitStream: inout ReadableBitStream) throws -> CGFloat {
+    func read(from bitStream: inout ReadableBitStream) throws(BitStreamError) -> CGFloat {
         try CGFloat(read(from: &bitStream) as Double)
     }
 }
@@ -118,12 +111,12 @@ public extension DoubleCompressor {
     }
     
     @inlinable
-    func read(from bitStream: inout ReadableBitStream) throws -> CGPoint {
+    func read(from bitStream: inout ReadableBitStream) throws(BitStreamError) -> CGPoint {
         try CGPoint(x: read(from: &bitStream) as CGFloat, y: read(from: &bitStream) as CGFloat)
     }
     
     @inlinable
-    func read(from bitStream: inout ReadableBitStream) throws -> CGVector {
+    func read(from bitStream: inout ReadableBitStream) throws(BitStreamError) -> CGVector {
         try CGVector(dx: read(from: &bitStream) as CGFloat, dy: read(from: &bitStream) as CGFloat)
     }
 }

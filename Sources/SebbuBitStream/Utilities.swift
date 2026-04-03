@@ -1,5 +1,5 @@
 @usableFromInline
-internal let crcTable: UnsafeBufferPointer<UInt32> = {
+nonisolated(unsafe) internal let crcTable: UnsafeBufferPointer<UInt32> = {
     let buffer = UnsafeMutableBufferPointer<UInt32>.allocate(capacity: 256)
     for i in 0...255 {
         buffer[i] = (0..<8).reduce(UInt32(i)) { c, _ in
@@ -15,6 +15,17 @@ internal extension Sequence where Element == UInt8 {
         ~(reduce(~UInt32(0)) { crc, byte in
             (crc >> 8) ^ crcTable[(Int(crc) ^ Int(byte)) & 0xFF]
         })
+    }
+}
+
+internal extension Span<UInt8> {
+    @usableFromInline
+    var crcChecksum: UInt32 {
+        var crc: UInt32 = ~UInt32(0)
+        for i in indices {
+            crc = (crc >> 8) ^ crcTable[(Int(crc) ^ Int(self[unchecked: i])) & 0xFF]
+        }
+        return ~crc
     }
 }
 

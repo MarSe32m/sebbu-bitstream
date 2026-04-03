@@ -18,17 +18,6 @@ internal extension Sequence where Element == UInt8 {
     }
 }
 
-internal extension Span<UInt8> {
-    @usableFromInline
-    var crcChecksum: UInt32 {
-        var crc: UInt32 = ~UInt32(0)
-        for i in indices {
-            crc = (crc >> 8) ^ crcTable[(Int(crc) ^ Int(self[unchecked: i])) & 0xFF]
-        }
-        return ~crc
-    }
-}
-
 internal extension UnsafeRawBufferPointer {
     @usableFromInline
     var crcChecksum: UInt32 {
